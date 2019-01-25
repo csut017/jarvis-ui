@@ -1,0 +1,28 @@
+<div class="alert alert-app-level alert-danger" role="alert">
+  <div class="alert-items">
+    <div class="alert-item static">
+      <div class="alert-icon-wrapper">
+        <clr-icon class="alert-icon" shape="exclamation-circle"></clr-icon>
+      </div>
+      <div class="alert-text">
+        API has not been implemented yet
+      </div>
+    </div>
+  </div>
+</div>
+<header class="header header-6">
+  <div class="branding">
+    <a href="home" class="nav-link">
+      <clr-icon shape="home"></clr-icon>
+      <span class="title">J.A.R.V.I.S</span>
+    </a>
+  </div>
+  <div class="header-nav">
+    <a href="home" class="nav-link nav-text" [class.active]="section=='home'">Home</a>
+  </div>
+  <div class="header-actions">
+    <a href="settings" class="nav-link nav-icon" [class.active]="section=='settings'">
+      <clr-icon shape="cog"></clr-icon>
+    </a>
+  </div>
+</header>
