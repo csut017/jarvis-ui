@@ -50,7 +50,8 @@ func (api *webAPI) initialise(addr string) *mux.Router {
 	router.HandleFunc("/sources/{name}/effectors", api.processSourceCommand).Methods("POST")
 
 	// Methods for generating speech
-	router.HandleFunc("/speech", api.generateSpeech).Methods("POST")
+	router.HandleFunc("/speech", api.generateSpeechFromGET).Methods("GET")
+	router.HandleFunc("/speech", api.generateSpeechFromPOST).Methods("POST")
 
 	// Methods for initialising a websocket
 	router.HandleFunc("/ws", api.startWebsocket).Methods("GET")
@@ -182,7 +183,14 @@ func (api *webAPI) processSourceCommand(resp http.ResponseWriter, req *http.Requ
 	api.writeStatusJSON(resp, http.StatusOK, "Ok", "Command sent")
 }
 
-func (api *webAPI) generateSpeech(resp http.ResponseWriter, req *http.Request) {
+func (api *webAPI) generateSpeechFromGET(resp http.ResponseWriter, req *http.Request) {
+	args := req.URL.Query()
+	text := strings.Join(args["text"], " ")
+	voice := strings.Join(args["voice"], " ")
+	api.generateSpeech(resp, req, text, voice)
+}
+
+func (api *webAPI) generateSpeechFromPOST(resp http.ResponseWriter, req *http.Request) {
 	cmd := &struct {
 		Text  string `json:"text"`
 		Voice string `json:"voice"`
@@ -193,17 +201,27 @@ func (api *webAPI) generateSpeech(resp http.ResponseWriter, req *http.Request) {
 		api.writeStatusJSON(resp, http.StatusBadRequest, "Error", "Invalid command")
 		return
 	}
+	api.generateSpeech(resp, req, cmd.Text, cmd.Voice)
+}
 
-	if cmd.Voice == "" {
-		cmd.Voice = "neutral"
-	} else {
-		cmd.Voice = strings.ToLower(cmd.Voice)
+func (api *webAPI) generateSpeech(resp http.ResponseWriter, req *http.Request, text, voice string) {
+	if text == "" {
+		log.Printf("[API] ERROR: No text to speak")
+		api.writeStatusJSON(resp, http.StatusBadRequest, "Error", "Missing text")
+		return
 	}
-	log.Printf("[API] Saying speech '%s' with %s voice", cmd.Text, cmd.Voice)
-	audio, err := generateSpeech(cmd.Text, cmd.Voice)
+
+	if voice == "" {
+		voice = "neutral"
+	} else {
+		voice = strings.ToLower(voice)
+	}
+	log.Printf("[API] Saying speech '%s' with %s voice", text, voice)
+	audio, err := generateSpeech(text, voice)
 	if err != nil {
 		log.Printf("[API] ERROR: Unable to generate speech: %v", err)
 		api.writeStatusJSON(resp, http.StatusBadRequest, "Failure", "Unable to generate speech")
+		return
 	}
 
 	resp.Header().Set("Content-Disposition", "attachment; filename=speech.mp3")
