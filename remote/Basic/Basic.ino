@@ -24,8 +24,8 @@ void setup() {
 
   // Tell the monitor what we are exposing
   Serial.begin(9600);
-  Serial.println("O:Time since start (s),Humidity (%),Temperature (C),Heat Index (C)");
-  Serial.println("I:Water pump");
+  Serial.println("O:time,humidity,tempC,heatIndC");
+  Serial.println("I:pump");
 
   // Initialise the pins
   pinMode(LED_PIN, OUTPUT);
