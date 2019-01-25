@@ -1,0 +1,16 @@
+{
+    "version": "2.0.0",
+    "tasks": [{
+            "label": "Build Server",
+            "type": "shell",
+            "command": "${workspaceRoot}\\dev\\buildServer.cmd",
+            "options": {
+                "cwd": "${workspaceRoot}\\server"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
