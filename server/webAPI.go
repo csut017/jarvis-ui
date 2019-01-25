@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -46,6 +48,11 @@ func (api *webAPI) initialise(addr string) *mux.Router {
 	router.HandleFunc("/sources/{name}/sensors", api.listSourceOutput).Methods("GET")
 	router.HandleFunc("/sources/{name}/effectors", api.listSourceInput).Methods("GET")
 	router.HandleFunc("/sources/{name}/effectors", api.processSourceCommand).Methods("POST")
+
+	// Methods for generating speech
+	router.HandleFunc("/speech", api.generateSpeech).Methods("POST")
+
+	// Methods for initialising a websocket
 	router.HandleFunc("/ws", api.startWebsocket).Methods("GET")
 
 	return router
@@ -173,6 +180,36 @@ func (api *webAPI) processSourceCommand(resp http.ResponseWriter, req *http.Requ
 
 	log.Printf("[API] Sending %s action to %s in source %s", cmd.Action, cmd.Name, name)
 	api.writeStatusJSON(resp, http.StatusOK, "Ok", "Command sent")
+}
+
+func (api *webAPI) generateSpeech(resp http.ResponseWriter, req *http.Request) {
+	cmd := &struct {
+		Text  string `json:"text"`
+		Voice string `json:"voice"`
+	}{}
+	err := json.NewDecoder(req.Body).Decode(cmd)
+	if err != nil {
+		log.Printf("[API] ERROR: Unable to parse incoming JSON: %v", err)
+		api.writeStatusJSON(resp, http.StatusBadRequest, "Error", "Invalid command")
+		return
+	}
+
+	if cmd.Voice == "" {
+		cmd.Voice = "neutral"
+	} else {
+		cmd.Voice = strings.ToLower(cmd.Voice)
+	}
+	log.Printf("[API] Saying speech '%s' with %s voice", cmd.Text, cmd.Voice)
+	audio, err := generateSpeech(cmd.Text, cmd.Voice)
+	if err != nil {
+		log.Printf("[API] ERROR: Unable to generate speech: %v", err)
+		api.writeStatusJSON(resp, http.StatusBadRequest, "Failure", "Unable to generate speech")
+	}
+
+	resp.Header().Set("Content-Disposition", "attachment; filename=speech.mp3")
+	resp.Header().Set("Content-Type", "audio/mpeg")
+	resp.Header().Set("Content-Length", strconv.Itoa(len(audio.AudioContent)))
+	resp.Write(audio.AudioContent)
 }
 
 func (api *webAPI) startWebsocket(resp http.ResponseWriter, req *http.Request) {
