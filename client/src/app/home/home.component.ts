@@ -17,7 +17,8 @@ export class HomeComponent implements OnInit {
 
   sayWelcome() {
     const dayPart = this.time.getPartOfDay(),
+      date = this.time.getFriendlyDate(),
       timePart = this.time.getFriendlyTime();
-    this.speech.say('Good ' + dayPart + ' Craig, it is ' + timePart);
+    this.speech.say('Good ' + dayPart + ' Craig, it is ' + date + ' the time is ' + timePart);
   }
 }

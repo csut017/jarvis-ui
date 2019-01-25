@@ -10,41 +10,36 @@ export class TimeService {
 
   getPartOfDay(): string {
     let now = moment();
-    let dayPart = now.hour() < 12 ? 'morning' : (now.hour() < 17 ? ' afternoon' : 'evening');
-    return dayPart;
+    return now.hour() < 12 ? 'morning' : (now.hour() < 17 ? ' afternoon' : 'evening');
+  }
+
+  getFriendlyDate(): string {
+    let now = moment();
+    return now.format('dddd, Do MMMM');
   }
 
   getFriendlyTime(): string {
     let now = moment();
-    let timePart = '';
     let minute = now.minute();
     switch (minute) {
       case 0:
-        timePart = now.hour().toString();
-        break;
+        return now.hour().toString();
 
       case 15:
-        timePart = 'quarter past ' + now.hour().toString();
-        break;
+        return 'quarter past ' + now.hour().toString();
 
       case 30:
-        timePart = 'half past ' + now.hour().toString();
-        break;
+        return 'half past ' + now.hour().toString();
 
       case 20:
-        timePart = 'quarter to ' + (now.hour() + 1).toString();
-        break;
+        return 'quarter to ' + (now.hour() + 1).toString();
 
       default:
-        let minuteText = minute.toString();
         if (minute > 30) {
-          timePart = minuteText + ' to ' + (now.hour() + 1).toString();
-        } else {
-          timePart = minuteText + ' past ' + now.hour().toString();
+          return (60 - minute).toString() + ' to ' + (now.hour() + 1).toString();
         }
-        break;
-    }
 
-    return timePart;
+        return minute.toString() + ' past ' + now.hour().toString();
+    }
   }
 }
