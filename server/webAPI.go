@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -44,6 +45,7 @@ func (api *webAPI) initialise(addr string) *mux.Router {
 	router.HandleFunc("/sources/{name}/values", api.listSourceValues).Methods("GET")
 	router.HandleFunc("/sources/{name}/sensors", api.listSourceOutput).Methods("GET")
 	router.HandleFunc("/sources/{name}/effectors", api.listSourceInput).Methods("GET")
+	router.HandleFunc("/sources/{name}/effectors", api.processSourceCommand).Methods("POST")
 	router.HandleFunc("/ws", api.startWebsocket).Methods("GET")
 
 	return router
@@ -92,13 +94,20 @@ func (api *webAPI) listSources(resp http.ResponseWriter, req *http.Request) {
 	api.writeDataJSON(resp, http.StatusOK, out)
 }
 
-func (api *webAPI) listSourceValues(resp http.ResponseWriter, req *http.Request) {
+func (api *webAPI) retrieveSource(resp http.ResponseWriter, req *http.Request) (string, *monitor) {
 	vars := mux.Vars(req)
 	name := vars["name"]
 	store := api.monitors.Get(name)
 	if store == nil {
 		log.Printf("[API] Cannot find source %s", name)
-		api.writeDataJSON(resp, http.StatusNotFound, "Unknown source")
+		api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Unknown source")
+	}
+	return name, store
+}
+
+func (api *webAPI) listSourceValues(resp http.ResponseWriter, req *http.Request) {
+	name, store := api.retrieveSource(resp, req)
+	if store == nil {
 		return
 	}
 
@@ -112,12 +121,8 @@ func (api *webAPI) listSourceValues(resp http.ResponseWriter, req *http.Request)
 }
 
 func (api *webAPI) listSourceOutput(resp http.ResponseWriter, req *http.Request) {
-	vars := mux.Vars(req)
-	name := vars["name"]
-	store := api.monitors.Get(name)
+	name, store := api.retrieveSource(resp, req)
 	if store == nil {
-		log.Printf("[API] Cannot find source %s", name)
-		api.writeDataJSON(resp, http.StatusNotFound, "Unknown source")
 		return
 	}
 
@@ -131,12 +136,8 @@ func (api *webAPI) listSourceOutput(resp http.ResponseWriter, req *http.Request)
 }
 
 func (api *webAPI) listSourceInput(resp http.ResponseWriter, req *http.Request) {
-	vars := mux.Vars(req)
-	name := vars["name"]
-	store := api.monitors.Get(name)
+	name, store := api.retrieveSource(resp, req)
 	if store == nil {
-		log.Printf("[API] Cannot find source %s", name)
-		api.writeDataJSON(resp, http.StatusNotFound, "Unknown source")
 		return
 	}
 
@@ -147,6 +148,31 @@ func (api *webAPI) listSourceInput(resp http.ResponseWriter, req *http.Request) 
 		Items: store.OutputTypes(),
 	}
 	api.writeDataJSON(resp, http.StatusOK, out)
+}
+
+func (api *webAPI) processSourceCommand(resp http.ResponseWriter, req *http.Request) {
+	name, store := api.retrieveSource(resp, req)
+	if store == nil {
+		return
+	}
+
+	cmd := &command{}
+	err := json.NewDecoder(req.Body).Decode(cmd)
+	if err != nil {
+		log.Printf("[API] ERROR: Unable to parse incoming JSON: %v", err)
+		api.writeStatusJSON(resp, http.StatusBadRequest, "Error", "Invalid command")
+		return
+	}
+
+	if err = store.SendCommand(cmd); err != nil {
+		msg := fmt.Sprintf("Unable to send command: %v", err)
+		log.Printf("[API] ERROR: " + msg)
+		api.writeStatusJSON(resp, http.StatusBadRequest, "Failure", msg)
+		return
+	}
+
+	log.Printf("[API] Sending %s action to %s in source %s", cmd.Action, cmd.Name, name)
+	api.writeStatusJSON(resp, http.StatusOK, "Ok", "Command sent")
 }
 
 func (api *webAPI) startWebsocket(resp http.ResponseWriter, req *http.Request) {

@@ -122,6 +122,50 @@ func (mon *monitor) OutputTypes() []string {
 	return mon.outputValues
 }
 
+func (mon *monitor) SendCommand(cmd *command) error {
+	outputNumber := -1
+	mon.mux.Lock()
+	for loop := 0; loop < len(mon.outputValues); loop++ {
+		if mon.outputValues[loop] == cmd.Name {
+			outputNumber = loop
+			break
+		}
+	}
+	mon.mux.Unlock()
+
+	if outputNumber < 0 {
+		return fmt.Errorf("Unable to find effector '%s'", cmd.Name)
+	}
+
+	action := " "
+	switch cmd.Action {
+	case "on":
+		action = "+"
+	case "off":
+		action = "-"
+
+	default:
+		return fmt.Errorf("Unknown action '%s'", cmd.Action)
+	}
+	msg := ""
+	if cmd.Duration != nil && *cmd.Duration > 0 {
+		msg = fmt.Sprintf("C:%d%s%d", outputNumber, action, *cmd.Duration)
+	} else {
+		msg = fmt.Sprintf("C:%d%s", outputNumber, action)
+	}
+
+	log.Printf("[Monitor] Sending '%s' to %s", msg, mon.name)
+	n, err := mon.conn.Write([]byte(msg + "\n"))
+	if err != nil {
+		log.Printf("[Monitor] Error sending '%s' to %s: %v", msg, mon.name, err)
+		return fmt.Errorf("Unable to connect to source")
+	} else {
+		log.Printf("[Monitor] Sent %d bytes to %s", n, mon.name)
+	}
+
+	return nil
+}
+
 func (mon *monitor) run() {
 	defer mon.conn.Close()
 	log.Printf("[Monitor] Monitor %s started", mon.name)
@@ -135,11 +179,11 @@ func (mon *monitor) run() {
 			if err != nil {
 				if err != io.EOF {
 					mon.stopping = true
-					log.Printf("[Monitor] Read error: %v", err)
+					log.Printf("[Monitor] Read error on %s: %v", mon.name, err)
 					mon.lastError = err
 				}
 			} else if n > 0 {
-				log.Printf("[Monitor] Received %d bytes", n)
+				log.Printf("[Monitor] Received %d bytes from %s", n, mon.name)
 			}
 			for loop := 0; loop < n; loop++ {
 				char := buf[loop]
@@ -179,21 +223,21 @@ func (mon *monitor) run() {
 }
 
 func (mon *monitor) loadOutputTypes(values []string) {
-	log.Printf("[Monitor] Received output types %v", values)
+	log.Printf("[Monitor] Received output types %v from %s", values, mon.name)
 	mon.mux.Lock()
 	mon.outputValues = values
 	mon.mux.Unlock()
 }
 
 func (mon *monitor) loadInputTypes(values []string) {
-	log.Printf("[Monitor] Received input types %v", values)
+	log.Printf("[Monitor] Received input types %v from %s", values, mon.name)
 	mon.mux.Lock()
 	mon.inputValues = values
 	mon.mux.Unlock()
 }
 
 func (mon *monitor) readData(values []string) {
-	log.Printf("[Monitor] Received values %v", values)
+	log.Printf("[Monitor] Received values %v from %s", values, mon.name)
 	result := &monitorResult{
 		Source:    mon.name,
 		TimeStamp: time.Now().Format(time.RFC3339),
@@ -217,7 +261,7 @@ func (mon *monitor) readData(values []string) {
 }
 
 func (mon *monitor) handleCommand(values []string) {
-	log.Printf("[Monitor] Received command %v", values)
+	log.Printf("[Monitor] Received command %v from %s", values, mon.name)
 }
 
 func parseFloat(value string) float32 {

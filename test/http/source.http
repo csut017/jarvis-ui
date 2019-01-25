@@ -1,0 +1,45 @@
+@baseURL = http://localhost/
+
+# @name listSources
+GET {{baseURL}}api/sources HTTP/1.1
+
+###
+
+@sourceName = {{listSources.response.body.sources[0].name}}
+
+# @name listSensors
+GET {{baseURL}}api/sources/{{sourceName}}/sensors HTTP/1.1
+
+###
+
+# @name listEffectors
+GET {{baseURL}}api/sources/{{sourceName}}/effectors HTTP/1.1
+
+###
+
+@effectorName = {{listEffectors.response.body.items[0]}}
+
+# @name listSensors
+GET {{baseURL}}api/sources/{{sourceName}}/values HTTP/1.1
+
+###
+
+POST {{baseURL}}api/sources/{{sourceName}}/effectors HTTP/1.1
+
+{
+    "name": "unknown effector",
+    "action": "on",
+    "duration": 2
+}
+
+###
+
+POST {{baseURL}}api/sources/{{sourceName}}/effectors HTTP/1.1
+
+{
+    "name": "{{effectorName}}",
+    "action": "on",
+    "duration": 2
+}
+
+###
