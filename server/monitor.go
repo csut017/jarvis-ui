@@ -207,6 +207,9 @@ func (mon *monitor) run() {
 
 						case 'C':
 							mon.handleCommand(msgData)
+
+						default:
+							log.Printf("[Monitor] Received unknown input '%s' from %s", rawData, mon.name)
 						}
 						out.Reset()
 					}
