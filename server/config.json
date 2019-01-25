@@ -1,0 +1,8 @@
+{
+    "staticPath": "./web",
+    "dataPath": "./data",
+    "sources":[{
+        "name": "Test-1",
+        "port":"COM9"
+    }]
+}

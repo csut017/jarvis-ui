@@ -1,0 +1,219 @@
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"log"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/tarm/serial"
+)
+
+type monitorResult struct {
+	Source    string               `json:"source"`
+	TimeStamp string               `json:"time"`
+	Counter   int64                `json:"count"`
+	Values    []monitorResultValue `json:"values"`
+}
+
+type monitorResultValue struct {
+	Name  string  `json:"name"`
+	Value float32 `json:"value"`
+}
+
+type monitorListener chan<- *monitorResult
+
+type monitor struct {
+	name         string
+	conn         *serial.Port
+	running      bool
+	stopping     bool
+	stopResult   chan int
+	lastError    error
+	listeners    map[monitorListener]bool
+	counter      int64
+	inputValues  []string
+	outputValues []string
+	mux          sync.Mutex
+}
+
+func (mon *monitor) AddListener(listener monitorListener) {
+	if mon.listeners == nil {
+		mon.listeners = map[monitorListener]bool{}
+	}
+	mon.listeners[listener] = true
+}
+
+func (mon *monitor) RemoveListener(listener monitorListener) {
+	if mon.listeners == nil {
+		return
+	}
+	if mon.listeners[listener] {
+		delete(mon.listeners, listener)
+	}
+}
+
+func (mon *monitor) Start(config *serial.Config, name string) error {
+	if mon.running {
+		return fmt.Errorf("Monitor is already running")
+	}
+
+	mon.name = name
+	config.ReadTimeout = time.Second
+	conn, err := serial.OpenPort(config)
+	if err != nil {
+		return fmt.Errorf("Unable to start monitor: %v", err)
+	}
+
+	mon.stopResult = make(chan int)
+	mon.conn = conn
+	mon.stopping = false
+	mon.lastError = nil
+	go mon.run()
+
+	return nil
+}
+
+func (mon *monitor) Stop() error {
+	if mon.running {
+		return fmt.Errorf("Monitor is not running")
+	}
+
+	mon.stopping = true
+	_ = <-mon.stopResult
+	return nil
+}
+
+func (mon *monitor) Name() string {
+	return mon.name
+}
+
+func (mon *monitor) IsRunning() bool {
+	return mon.running
+}
+
+func (mon *monitor) LastError() error {
+	return mon.lastError
+}
+
+func (mon *monitor) InputTypes() []string {
+	mon.mux.Lock()
+	defer mon.mux.Unlock()
+	return mon.inputValues
+}
+
+func (mon *monitor) OutputTypes() []string {
+	mon.mux.Lock()
+	defer mon.mux.Unlock()
+	return mon.outputValues
+}
+
+func (mon *monitor) run() {
+	defer mon.conn.Close()
+	log.Printf("[Monitor] Monitor %s started", mon.name)
+
+	mon.running = true
+	out := &bytes.Buffer{}
+	for !mon.stopping {
+		buf := make([]byte, 1024)
+		for loop := 0; loop < 10; loop++ {
+			n, err := mon.conn.Read(buf)
+			if err != nil {
+				if err != io.EOF {
+					mon.stopping = true
+					log.Printf("[Monitor] Read error: %v", err)
+					mon.lastError = err
+				}
+			} else if n > 0 {
+				log.Printf("[Monitor] Received %d bytes", n)
+			}
+			for loop := 0; loop < n; loop++ {
+				char := buf[loop]
+				switch char {
+				case '\r':
+					// Ignore carriage returns
+
+				case '\n':
+					rawData := out.String()
+					if len(rawData) > 0 {
+						msgData := strings.Split(rawData[2:], ",")
+						switch rawData[0] {
+						case 'O':
+							mon.loadInputTypes(msgData)
+
+						case 'I':
+							mon.loadOutputTypes(msgData)
+
+						case 'D':
+							mon.readData(msgData)
+
+						case 'C':
+							mon.handleCommand(msgData)
+						}
+						out.Reset()
+					}
+				default:
+					out.WriteByte(char)
+				}
+			}
+		}
+	}
+
+	mon.running = false
+	close(mon.stopResult)
+	log.Printf("[Monitor] Monitor %s finished", mon.name)
+}
+
+func (mon *monitor) loadOutputTypes(values []string) {
+	log.Printf("[Monitor] Received output types %v", values)
+	mon.mux.Lock()
+	mon.outputValues = values
+	mon.mux.Unlock()
+}
+
+func (mon *monitor) loadInputTypes(values []string) {
+	log.Printf("[Monitor] Received input types %v", values)
+	mon.mux.Lock()
+	mon.inputValues = values
+	mon.mux.Unlock()
+}
+
+func (mon *monitor) readData(values []string) {
+	log.Printf("[Monitor] Received values %v", values)
+	result := &monitorResult{
+		Source:    mon.name,
+		TimeStamp: time.Now().Format(time.RFC3339),
+		Counter:   mon.counter,
+		Values:    make([]monitorResultValue, len(mon.inputValues)),
+	}
+
+	for loop := 0; loop < len(mon.inputValues); loop++ {
+		result.Values[loop] = monitorResultValue{
+			Name:  mon.inputValues[loop],
+			Value: parseFloat(values[loop]),
+		}
+	}
+
+	mon.counter++
+	if mon.listeners != nil {
+		for listener := range mon.listeners {
+			listener <- result
+		}
+	}
+}
+
+func (mon *monitor) handleCommand(values []string) {
+	log.Printf("[Monitor] Received command %v", values)
+}
+
+func parseFloat(value string) float32 {
+	val, err := strconv.ParseFloat(value, 32)
+	if err != nil {
+		log.Printf("[Monitor] WARNING: Unable to parse '%s' as a float", value)
+	}
+	return float32(val)
+}
