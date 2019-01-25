@@ -13,16 +13,18 @@ type webAPI struct {
 	Router   *mux.Router
 	addr     string
 	data     *dataStore
+	monitors *monitorStore
 	config   *appConfiguration
 	upgrader websocket.Upgrader
 	hub      *websocketHub
 }
 
-func newWebAPI(addr string, data *dataStore, config *appConfiguration) (*webAPI, error) {
+func newWebAPI(addr string, data *dataStore, monitors *monitorStore, config *appConfiguration) (*webAPI, error) {
 	api := webAPI{
-		addr:   addr,
-		data:   data,
-		config: config,
+		addr:     addr,
+		data:     data,
+		monitors: monitors,
+		config:   config,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -39,7 +41,9 @@ func (api *webAPI) initialise(addr string) *mux.Router {
 
 	// Methods for working with sources
 	router.HandleFunc("/sources", api.listSources).Methods("GET")
-	router.HandleFunc("/sources/{name}", api.listSource).Methods("GET")
+	router.HandleFunc("/sources/{name}/values", api.listSourceValues).Methods("GET")
+	router.HandleFunc("/sources/{name}/sensors", api.listSourceOutput).Methods("GET")
+	router.HandleFunc("/sources/{name}/effectors", api.listSourceInput).Methods("GET")
 	router.HandleFunc("/ws", api.startWebsocket).Methods("GET")
 
 	return router
@@ -88,14 +92,59 @@ func (api *webAPI) listSources(resp http.ResponseWriter, req *http.Request) {
 	api.writeDataJSON(resp, http.StatusOK, out)
 }
 
-func (api *webAPI) listSource(resp http.ResponseWriter, req *http.Request) {
+func (api *webAPI) listSourceValues(resp http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	name := vars["name"]
+	store := api.monitors.Get(name)
+	if store == nil {
+		log.Printf("[API] Cannot find source %s", name)
+		api.writeDataJSON(resp, http.StatusNotFound, "Unknown source")
+		return
+	}
+
 	log.Printf("[API] Listing data for source %s", name)
 	out := struct {
 		Items *[]monitorResult `json:"items"`
 	}{
 		Items: api.data.GetItems(name),
+	}
+	api.writeDataJSON(resp, http.StatusOK, out)
+}
+
+func (api *webAPI) listSourceOutput(resp http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	name := vars["name"]
+	store := api.monitors.Get(name)
+	if store == nil {
+		log.Printf("[API] Cannot find source %s", name)
+		api.writeDataJSON(resp, http.StatusNotFound, "Unknown source")
+		return
+	}
+
+	log.Printf("[API] Listing sensors for source %s", name)
+	out := struct {
+		Items []string `json:"items"`
+	}{
+		Items: store.InputTypes(),
+	}
+	api.writeDataJSON(resp, http.StatusOK, out)
+}
+
+func (api *webAPI) listSourceInput(resp http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	name := vars["name"]
+	store := api.monitors.Get(name)
+	if store == nil {
+		log.Printf("[API] Cannot find source %s", name)
+		api.writeDataJSON(resp, http.StatusNotFound, "Unknown source")
+		return
+	}
+
+	log.Printf("[API] Listing effectors for source %s", name)
+	out := struct {
+		Items []string `json:"items"`
+	}{
+		Items: store.OutputTypes(),
 	}
 	api.writeDataJSON(resp, http.StatusOK, out)
 }

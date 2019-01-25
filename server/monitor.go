@@ -27,6 +27,16 @@ type monitorResultValue struct {
 
 type monitorListener chan<- *monitorResult
 
+type monitorStore map[string]*monitor
+
+func (store monitorStore) Get(name string) *monitor {
+	return store[name]
+}
+
+func (store monitorStore) Add(name string, mon *monitor) {
+	store[name] = mon
+}
+
 type monitor struct {
 	name         string
 	conn         *serial.Port

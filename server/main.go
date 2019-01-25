@@ -22,7 +22,7 @@ func main() {
 	var (
 		configPath = flag.String("config", "config.json", "The configuration file to use")
 		port       = flag.String("port", "80", "port to serve on")
-		monitors   = map[string]*monitor{}
+		monitors   = &monitorStore{}
 	)
 	flag.Parse()
 
@@ -39,7 +39,7 @@ func main() {
 
 	log.Printf("[Main] Initialising webserver")
 	addr := ":" + *port
-	api, srv := initialiseWebServer(addr, data, config)
+	api, srv := initialiseWebServer(addr, data, monitors, config)
 	out := make(chan *monitorResult)
 	go handleResult(out, api)
 
@@ -55,7 +55,7 @@ func main() {
 
 		mon.AddListener(out)
 		mon.AddListener(dataChan)
-		monitors[sensor.Name] = mon
+		monitors.Add(sensor.Name, mon)
 	}
 
 	log.Printf("[Main] Starting webserver")
@@ -74,7 +74,7 @@ func main() {
 
 	log.Printf("[Main] Stopping monitors")
 
-	for _, mon := range monitors {
+	for _, mon := range *monitors {
 		mon.Stop()
 		if err = mon.LastError(); err != nil {
 			log.Fatalf("[Main] Unable to stop monitor %s: %v", mon.Name(), err)
@@ -94,7 +94,7 @@ func handleResult(input <-chan *monitorResult, srv *webAPI) {
 	}
 }
 
-func initialiseWebServer(addr string, data *dataStore, config *appConfiguration) (*webAPI, *http.Server) {
+func initialiseWebServer(addr string, data *dataStore, monitors *monitorStore, config *appConfiguration) (*webAPI, *http.Server) {
 	rootMiddleware := interpose.New()
 
 	rootRouter := mux.NewRouter()
@@ -108,7 +108,7 @@ func initialiseWebServer(addr string, data *dataStore, config *appConfiguration)
 	rootMiddleware.Use(logRequestsMiddleware)
 	rootMiddleware.UseHandler(rootRouter)
 
-	api, err := newWebAPI(addr, data, config)
+	api, err := newWebAPI(addr, data, monitors, config)
 	if err != nil {
 		log.Fatalf("[Main] Unable to initialise API: %v", err)
 	}
