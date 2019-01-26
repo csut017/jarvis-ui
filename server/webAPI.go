@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -20,13 +21,15 @@ type webAPI struct {
 	config   *appConfiguration
 	upgrader websocket.Upgrader
 	hub      *websocketHub
+	weather  *weatherService
 }
 
-func newWebAPI(addr string, data *dataStore, monitors *monitorStore, config *appConfiguration) (*webAPI, error) {
+func newWebAPI(addr string, data *dataStore, monitors *monitorStore, weather *weatherService, config *appConfiguration) (*webAPI, error) {
 	api := webAPI{
 		addr:     addr,
 		data:     data,
 		monitors: monitors,
+		weather:  weather,
 		config:   config,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
@@ -52,6 +55,11 @@ func (api *webAPI) initialise(addr string) *mux.Router {
 	// Methods for generating speech
 	router.HandleFunc("/speech", api.generateSpeechFromGET).Methods("GET")
 	router.HandleFunc("/speech", api.generateSpeechFromPOST).Methods("POST")
+
+	// Methods for retrieving weather information
+	router.HandleFunc("/weather", api.getWeather).Methods("GET")
+	router.HandleFunc("/weather/raw", api.getRawWeather).Methods("GET")
+	router.HandleFunc("/sun", api.getSunriseSunset).Methods("GET")
 
 	// Methods for initialising a websocket
 	router.HandleFunc("/ws", api.startWebsocket).Methods("GET")
@@ -228,6 +236,94 @@ func (api *webAPI) generateSpeech(resp http.ResponseWriter, req *http.Request, t
 	resp.Header().Set("Content-Type", "audio/mpeg")
 	resp.Header().Set("Content-Length", strconv.Itoa(len(audio.AudioContent)))
 	resp.Write(audio.AudioContent)
+}
+
+func (api *webAPI) getWeather(resp http.ResponseWriter, req *http.Request) {
+	oneWord := ""
+	current := api.weather.GetCurrentWeather()
+	var currentTemp, minTemp, maxTemp float64
+
+	currentWeather := "There is no weather information"
+	if current != nil && len(current.Weather) > 0 {
+		oneWord = current.Weather[0].Main
+		currentWeather = fmt.Sprintf(
+			"The current weather is %s, the temperature is %.f°C",
+			current.Weather[0].Description,
+			current.Main.Temperature)
+		currentTemp = current.Main.Temperature
+	}
+
+	forecast := api.weather.GetWeatherForecast()
+	if forecast == nil {
+		api.writeStatusJSON(resp, http.StatusServiceUnavailable, "Not available", "Weather information has not been downloaded")
+		return
+	}
+
+	weatherForecast, listLen := "There is no forecast", len(forecast.List)
+	if forecast != nil && listLen > 0 {
+		item := forecast.List[0]
+		minTemp, maxTemp = item.Main.MinimumTemperature, item.Main.MaximumTemperature
+		for loop := 1; loop < 8 && loop < listLen; loop++ {
+			temp := forecast.List[loop].Main
+			if minTemp > temp.MinimumTemperature {
+				minTemp = temp.MinimumTemperature
+			}
+			if maxTemp < temp.MaximumTemperature {
+				maxTemp = temp.MaximumTemperature
+			}
+		}
+		if math.Abs(minTemp-maxTemp) > 0.5 {
+			weatherForecast = fmt.Sprintf(
+				"The forecast is %s, with a temperature between %.f°C and %.f°C",
+				item.Weather[0].Description,
+				minTemp,
+				maxTemp)
+		} else {
+			weatherForecast = fmt.Sprintf(
+				"The forecast is %s, with a temperature of %.f°C",
+				item.Weather[0].Description,
+				maxTemp)
+		}
+	}
+
+	item := struct {
+		Current     string `json:"current"`
+		OneWord     string `json:"oneWord"`
+		Forecast    string `json:"forecast"`
+		Temperature struct {
+			Minimum float64 `json:"min"`
+			Current float64 `json:"current"`
+			Maximum float64 `json:"max"`
+		} `json:"temperature"`
+	}{
+		Current:  currentWeather,
+		OneWord:  oneWord,
+		Forecast: weatherForecast,
+	}
+	item.Temperature.Minimum = minTemp
+	item.Temperature.Current = currentTemp
+	item.Temperature.Maximum = maxTemp
+	api.writeDataJSON(resp, 200, item)
+}
+
+func (api *webAPI) getRawWeather(resp http.ResponseWriter, req *http.Request) {
+	item := struct {
+		Current  interface{} `json:"current"`
+		Forecast interface{} `json:"forecast"`
+	}{
+		Current:  api.weather.GetCurrentWeather(),
+		Forecast: api.weather.GetWeatherForecast(),
+	}
+	api.writeDataJSON(resp, 200, item)
+}
+
+func (api *webAPI) getSunriseSunset(resp http.ResponseWriter, req *http.Request) {
+	item := struct {
+		Results interface{} `json:"results"`
+	}{
+		Results: api.weather.GetSunriseSunset(),
+	}
+	api.writeDataJSON(resp, 200, item)
 }
 
 func (api *webAPI) startWebsocket(resp http.ResponseWriter, req *http.Request) {

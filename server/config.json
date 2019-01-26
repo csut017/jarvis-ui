@@ -4,5 +4,12 @@
     "sources":[{
         "name": "Test-1",
         "port":"COM9"
-    }]
+    }],
+    "weather": {
+        "location": "2193734",
+        "url": "https://api.openweathermap.org/data/2.5/",
+        "key":"ac0178c2f4deabfc1be3ccb8262bad94",
+        "refresh": 60,
+        "sun": "https://api.sunrise-sunset.org/json"
+    }
 }

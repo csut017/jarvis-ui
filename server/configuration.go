@@ -15,6 +15,15 @@ type appConfiguration struct {
 	Sources    []monitorConfiguration `json:"sources"`
 	DataPath   string                 `json:"dataPath"`
 	StaticPath string                 `json:"staticPath"`
+	Weather    *weatherConfiguration  `json:"weather"`
+}
+
+type weatherConfiguration struct {
+	LocationCode     string `json:"location"`
+	BaseURL          string `json:"url"`
+	APIKey           string `json:"key"`
+	RefreshPeriod    int64  `json:"refresh"`
+	SunriseSunsetURL string `json:"sun"`
 }
 
 func readConfiguration(filePath string) (*appConfiguration, error) {

@@ -8,6 +8,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HomeComponent } from './home/home.component';
 import { SettingsComponent } from './settings/settings.component';
 import { HeaderComponent } from './header/header.component';
+import { HttpClientModule } from '@angular/common/http'; 
 
 @NgModule({
   declarations: [
@@ -19,6 +20,7 @@ import { HeaderComponent } from './header/header.component';
   imports: [
     BrowserModule,
     AppRoutingModule,
+    HttpClientModule,
     ClarityModule,
     BrowserAnimationsModule
   ],

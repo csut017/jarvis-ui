@@ -23,6 +23,7 @@ func main() {
 		configPath = flag.String("config", "config.json", "The configuration file to use")
 		port       = flag.String("port", "80", "port to serve on")
 		monitors   = &monitorStore{}
+		weather    = &weatherService{}
 	)
 	flag.Parse()
 
@@ -37,9 +38,14 @@ func main() {
 	dataChan := data.Initialise()
 	data.Start()
 
+	if config.Weather != nil {
+		log.Printf("[Main] Starting weather service")
+		weather.Start(config.Weather)
+	}
+
 	log.Printf("[Main] Initialising webserver")
 	addr := ":" + *port
-	api, srv := initialiseWebServer(addr, data, monitors, config)
+	api, srv := initialiseWebServer(addr, data, monitors, weather, config)
 	out := make(chan *monitorResult)
 	go handleResult(out, api)
 
@@ -73,13 +79,13 @@ func main() {
 	waitForShutdown(srv)
 
 	log.Printf("[Main] Stopping monitors")
-
 	for _, mon := range *monitors {
 		mon.Stop()
 		if err = mon.LastError(); err != nil {
 			log.Fatalf("[Main] Unable to stop monitor %s: %v", mon.Name(), err)
 		}
 	}
+	weather.Stop(time.Second * 5)
 	close(out)
 }
 func handleResult(input <-chan *monitorResult, srv *webAPI) {
@@ -94,7 +100,7 @@ func handleResult(input <-chan *monitorResult, srv *webAPI) {
 	}
 }
 
-func initialiseWebServer(addr string, data *dataStore, monitors *monitorStore, config *appConfiguration) (*webAPI, *http.Server) {
+func initialiseWebServer(addr string, data *dataStore, monitors *monitorStore, weather *weatherService, config *appConfiguration) (*webAPI, *http.Server) {
 	rootMiddleware := interpose.New()
 
 	rootRouter := mux.NewRouter()
@@ -108,13 +114,14 @@ func initialiseWebServer(addr string, data *dataStore, monitors *monitorStore, c
 	rootMiddleware.Use(logRequestsMiddleware)
 	rootMiddleware.UseHandler(rootRouter)
 
-	api, err := newWebAPI(addr, data, monitors, config)
+	api, err := newWebAPI(addr, data, monitors, weather, config)
 	if err != nil {
 		log.Fatalf("[Main] Unable to initialise API: %v", err)
 	}
 
 	apiRouter := api.Router
 	apiMiddleware := interpose.New()
+	apiMiddleware.Use(setOriginRequestAndHeadersMiddleware)
 	apiMiddleware.UseHandler(apiRouter)
 	rootRouter.PathPrefix("/api").Handler(apiMiddleware)
 
@@ -132,6 +139,22 @@ func initialiseWebServer(addr string, data *dataStore, monitors *monitorStore, c
 		ReadTimeout:  time.Second * 20,
 	}
 	return api, srv
+}
+
+func setOriginRequestAndHeadersMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		if origin := req.Header.Get("Origin"); origin != "" {
+			resp.Header().Set("Access-Control-Allow-Origin", origin)
+			resp.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, PATCH")
+			resp.Header().Set("Access-Control-Allow-Headers",
+				"Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+		}
+		if req.Method == "OPTIONS" {
+			return
+		}
+
+		handler.ServeHTTP(resp, req)
+	})
 }
 
 func disableCaching(handler http.Handler) http.Handler {
