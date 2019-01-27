@@ -12,7 +12,7 @@ export class WeatherService {
 
   constructor(private http: HttpClient,
     logging: LoggingService) {
-    this.logger = logging.get('SpeechService');
+    this.logger = logging.get('WeatherService');
   }
 
   private logger: Logger;

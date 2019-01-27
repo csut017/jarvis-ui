@@ -56,6 +56,9 @@ func (api *webAPI) initialise(addr string) *mux.Router {
 	router.HandleFunc("/speech", api.generateSpeechFromGET).Methods("GET")
 	router.HandleFunc("/speech", api.generateSpeechFromPOST).Methods("POST")
 
+	// Methods for retrieving room information
+	router.HandleFunc("/room/{name}", api.getRoomConditions).Methods("GET")
+
 	// Methods for retrieving weather information
 	router.HandleFunc("/weather", api.getWeather).Methods("GET")
 	router.HandleFunc("/weather/raw", api.getRawWeather).Methods("GET")
@@ -238,6 +241,31 @@ func (api *webAPI) generateSpeech(resp http.ResponseWriter, req *http.Request, t
 	resp.Write(audio.AudioContent)
 }
 
+func (api *webAPI) getRoomConditions(resp http.ResponseWriter, req *http.Request) {
+	name, store := api.retrieveSource(resp, req)
+	if store == nil {
+		return
+	}
+
+	log.Printf("[API] Generating room information for %s", name)
+	readings := api.data.GetLast(name, 6)
+	var avgTemp float32
+	pos := store.GetSensorPosition("tempC")
+	for _, reading := range *readings {
+		avgTemp += reading.Values[pos].Value
+	}
+	avgTemp /= float32(len(*readings))
+	summary := fmt.Sprintf(
+		"The current temperature in this room is around %.f°C",
+		avgTemp)
+	out := struct {
+		Summary string `json:"summary"`
+	}{
+		Summary: summary,
+	}
+	api.writeDataJSON(resp, http.StatusOK, out)
+}
+
 func (api *webAPI) getWeather(resp http.ResponseWriter, req *http.Request) {
 	oneWord := ""
 	current := api.weather.GetCurrentWeather()
@@ -274,7 +302,7 @@ func (api *webAPI) getWeather(resp http.ResponseWriter, req *http.Request) {
 		}
 		if math.Abs(minTemp-maxTemp) > 0.5 {
 			weatherForecast = fmt.Sprintf(
-				"The forecast is %s, with a temperature between %.f°C and %.f°C",
+				"The forecast is %s, with a temperature between %.f and %.f°C",
 				item.Weather[0].Description,
 				minTemp,
 				maxTemp)

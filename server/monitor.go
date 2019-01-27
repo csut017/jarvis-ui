@@ -116,6 +116,17 @@ func (mon *monitor) InputTypes() []string {
 	return mon.inputValues
 }
 
+func (mon *monitor) GetSensorPosition(name string) int {
+	mon.mux.Lock()
+	defer mon.mux.Unlock()
+	for index, sensor := range mon.inputValues {
+		if sensor == name {
+			return index
+		}
+	}
+	return -1
+}
+
 func (mon *monitor) OutputTypes() []string {
 	mon.mux.Lock()
 	defer mon.mux.Unlock()

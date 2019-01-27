@@ -32,7 +32,11 @@ func (store *sourceDataStore) Add(result *monitorResult) {
 }
 
 func (store *sourceDataStore) Get() *[]monitorResult {
-	start := store.position - storeSize
+	return store.GetLast(storeSize)
+}
+
+func (store *sourceDataStore) GetLast(number int) *[]monitorResult {
+	start := store.position - number
 	if start < 0 {
 		start = 0
 	}
@@ -89,6 +93,14 @@ func (store *dataStore) GetItems(name string) *[]monitorResult {
 		return &[]monitorResult{}
 	}
 	return source.Get()
+}
+
+func (store *dataStore) GetLast(name string, number int) *[]monitorResult {
+	source, ok := store.sources[name]
+	if !ok {
+		return &[]monitorResult{}
+	}
+	return source.GetLast(number)
 }
 
 func (store *dataStore) run() {
