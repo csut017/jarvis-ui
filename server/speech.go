@@ -8,7 +8,7 @@ import (
 	texttospeechpb "google.golang.org/genproto/googleapis/cloud/texttospeech/v1"
 )
 
-func generateSpeech(text, voice string) (*texttospeechpb.SynthesizeSpeechResponse, error) {
+func generateSpeech(text, voice, format string) (*texttospeechpb.SynthesizeSpeechResponse, error) {
 	ctx := context.Background()
 	client, err := texttospeech.NewClient(ctx)
 	if err != nil {
@@ -24,6 +24,12 @@ func generateSpeech(text, voice string) (*texttospeechpb.SynthesizeSpeechRespons
 		voiceGender = texttospeechpb.SsmlVoiceGender_FEMALE
 	}
 
+	formatType := texttospeechpb.AudioEncoding_MP3
+	switch format {
+	case "wav":
+		formatType = texttospeechpb.AudioEncoding_LINEAR16
+	}
+
 	req := texttospeechpb.SynthesizeSpeechRequest{
 		Input: &texttospeechpb.SynthesisInput{
 			InputSource: &texttospeechpb.SynthesisInput_Text{Text: text},
@@ -33,7 +39,7 @@ func generateSpeech(text, voice string) (*texttospeechpb.SynthesizeSpeechRespons
 			SsmlGender:   voiceGender,
 		},
 		AudioConfig: &texttospeechpb.AudioConfig{
-			AudioEncoding: texttospeechpb.AudioEncoding_MP3,
+			AudioEncoding: formatType,
 		},
 	}
 

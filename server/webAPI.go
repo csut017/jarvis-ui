@@ -57,7 +57,8 @@ func (api *webAPI) initialise(addr string) *mux.Router {
 	router.HandleFunc("/speech", api.generateSpeechFromPOST).Methods("POST")
 
 	// Methods for retrieving room information
-	router.HandleFunc("/room/{name}", api.getRoomConditions).Methods("GET")
+	router.HandleFunc("/rooms", api.getRooms).Methods("GET")
+	router.HandleFunc("/rooms/{name}", api.getRoomConditions).Methods("GET")
 
 	// Methods for retrieving weather information
 	router.HandleFunc("/weather", api.getWeather).Methods("GET")
@@ -198,13 +199,15 @@ func (api *webAPI) generateSpeechFromGET(resp http.ResponseWriter, req *http.Req
 	args := req.URL.Query()
 	text := strings.Join(args["text"], " ")
 	voice := strings.Join(args["voice"], " ")
-	api.generateSpeech(resp, req, text, voice)
+	format := strings.Join(args["format"], " ")
+	api.generateSpeech(resp, req, text, voice, format)
 }
 
 func (api *webAPI) generateSpeechFromPOST(resp http.ResponseWriter, req *http.Request) {
 	cmd := &struct {
-		Text  string `json:"text"`
-		Voice string `json:"voice"`
+		Text   string `json:"text"`
+		Voice  string `json:"voice"`
+		Format string `json:"format"`
 	}{}
 	err := json.NewDecoder(req.Body).Decode(cmd)
 	if err != nil {
@@ -212,10 +215,10 @@ func (api *webAPI) generateSpeechFromPOST(resp http.ResponseWriter, req *http.Re
 		api.writeStatusJSON(resp, http.StatusBadRequest, "Error", "Invalid command")
 		return
 	}
-	api.generateSpeech(resp, req, cmd.Text, cmd.Voice)
+	api.generateSpeech(resp, req, cmd.Text, cmd.Voice, cmd.Format)
 }
 
-func (api *webAPI) generateSpeech(resp http.ResponseWriter, req *http.Request, text, voice string) {
+func (api *webAPI) generateSpeech(resp http.ResponseWriter, req *http.Request, text, voice, format string) {
 	if text == "" {
 		log.Printf("[API] ERROR: No text to speak")
 		api.writeStatusJSON(resp, http.StatusBadRequest, "Error", "Missing text")
@@ -227,18 +230,33 @@ func (api *webAPI) generateSpeech(resp http.ResponseWriter, req *http.Request, t
 	} else {
 		voice = strings.ToLower(voice)
 	}
-	log.Printf("[API] Saying speech '%s' with %s voice", text, voice)
-	audio, err := generateSpeech(text, voice)
+	if format == "" {
+		format = "mp3"
+	} else {
+		format = strings.ToLower(format)
+	}
+	log.Printf("[API] Saying speech '%s' with %s voice to %s", text, voice, format)
+	audio, err := generateSpeech(text, voice, format)
 	if err != nil {
 		log.Printf("[API] ERROR: Unable to generate speech: %v", err)
 		api.writeStatusJSON(resp, http.StatusBadRequest, "Failure", "Unable to generate speech")
 		return
 	}
 
-	resp.Header().Set("Content-Disposition", "attachment; filename=speech.mp3")
+	resp.Header().Set("Content-Disposition", "attachment; filename=speech."+format)
 	resp.Header().Set("Content-Type", "audio/mpeg")
 	resp.Header().Set("Content-Length", strconv.Itoa(len(audio.AudioContent)))
 	resp.Write(audio.AudioContent)
+}
+
+func (api *webAPI) getRooms(resp http.ResponseWriter, req *http.Request) {
+	log.Printf("[API] Listing rooms")
+	out := struct {
+		Items []string `json:"items"`
+	}{
+		Items: []string{},
+	}
+	api.writeDataJSON(resp, http.StatusOK, out)
 }
 
 func (api *webAPI) getRoomConditions(resp http.ResponseWriter, req *http.Request) {

@@ -1,0 +1,10 @@
+@baseURL = http://localhost/
+
+# @name listSources
+GET {{baseURL}}api/rooms HTTP/1.1
+
+###
+
+GET {{baseURL}}api/room/Test-1 HTTP/1.1
+
+###
