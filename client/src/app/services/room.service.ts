@@ -30,7 +30,7 @@ export class RoomInterface {
   private logger: Logger;
 
   getSummary(): Observable<RoomSummary> {
-    const url = `${environment.apiURL}room/${this.name}`;
+    const url = `${environment.apiURL}rooms/${this.name}`;
     this.logger.log('Retrieving current room summary', url);
     return this.http.get<RoomSummary>(url)
       .pipe(
