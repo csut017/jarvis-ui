@@ -131,11 +131,25 @@ func (api *webAPI) listSourceValues(resp http.ResponseWriter, req *http.Request)
 		return
 	}
 
+	countText := "100"
+	counts, ok := req.URL.Query()["count"]
+	if ok {
+		countText = counts[0]
+	}
+
+	count, err := strconv.Atoi(countText)
+	if err != nil {
+		count = 100
+	}
+
 	log.Printf("[API] Listing data for source %s", name)
+	items := api.data.GetLast(name, count)
 	out := struct {
+		Count int              `json:"count"`
 		Items *[]monitorResult `json:"items"`
 	}{
-		Items: api.data.GetItems(name),
+		Count: len(*items),
+		Items: items,
 	}
 	api.writeDataJSON(resp, http.StatusOK, out)
 }

@@ -36,13 +36,13 @@ func (store *sourceDataStore) Get() *[]monitorResult {
 }
 
 func (store *sourceDataStore) GetLast(number int) *[]monitorResult {
-	start := store.position - number
-	if start < 0 {
-		start = 0
+	if number > store.position {
+		number = store.position
 	}
-	size := store.position - start + 1
-	out := make([]monitorResult, size)
-	for loop := 0; loop < size; loop++ {
+
+	start := store.position - number
+	out := make([]monitorResult, number)
+	for loop := 0; loop < number; loop++ {
 		out[loop] = store.items[loop+start]
 	}
 	return &out

@@ -12,17 +12,20 @@ GET {{baseURL}}api/sources/{{sourceName}}/sensors HTTP/1.1
 
 ###
 
+GET {{baseURL}}api/sources/{{sourceName}}/values HTTP/1.1
+
+###
+
+GET {{baseURL}}api/sources/{{sourceName}}/values?count=5 HTTP/1.1
+
+###
+
 # @name listEffectors
 GET {{baseURL}}api/sources/{{sourceName}}/effectors HTTP/1.1
 
 ###
 
 @effectorName = {{listEffectors.response.body.items[0]}}
-
-# @name listSensors
-GET {{baseURL}}api/sources/{{sourceName}}/values HTTP/1.1
-
-###
 
 POST {{baseURL}}api/sources/{{sourceName}}/effectors HTTP/1.1
 
