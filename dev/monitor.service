@@ -1,0 +1,11 @@
+[Unit]
+Description=Arduino plant monitor connection
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/home/pi/arduino/quicktest -config /home/pi/arduino/config.json
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
