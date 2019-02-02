@@ -164,22 +164,27 @@ func (mon *monitor) SendCommand(cmd *command) error {
 	} else {
 		msg = fmt.Sprintf("C:%d%s", outputNumber, action)
 	}
+	return mon.send(msg)
+}
 
+func (mon *monitor) send(msg string) error {
 	log.Printf("[Monitor] Sending '%s' to %s", msg, mon.name)
 	n, err := mon.conn.Write([]byte(msg + "\n"))
 	if err != nil {
 		log.Printf("[Monitor] Error sending '%s' to %s: %v", msg, mon.name, err)
 		return fmt.Errorf("Unable to connect to source")
-	} else {
-		log.Printf("[Monitor] Sent %d bytes to %s", n, mon.name)
 	}
-
+	log.Printf("[Monitor] Sent %d bytes to %s", n, mon.name)
 	return nil
 }
 
 func (mon *monitor) run() {
 	defer mon.conn.Close()
 	log.Printf("[Monitor] Monitor %s started", mon.name)
+
+	if err := mon.send("I:"); err != nil {
+		return
+	}
 
 	mon.running = true
 	out := &bytes.Buffer{}

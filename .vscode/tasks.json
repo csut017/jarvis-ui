@@ -1,6 +1,7 @@
 {
     "version": "2.0.0",
-    "tasks": [{
+    "tasks": [
+        {
             "label": "Build Server",
             "type": "shell",
             "command": "${workspaceRoot}\\dev\\buildServer.cmd",
@@ -11,6 +12,15 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "Deploy to Raspberry Pi",
+            "type": "shell",
+            "command": "${workspaceRoot}\\dev\\deployToRaspberryPi.cmd",
+            "options": {
+                "cwd": "${workspaceRoot}\\server"
+            },
+            "problemMatcher": []
         }
     ]
 }

@@ -152,6 +152,7 @@ void loop()
 
 void sendDetails()
 {
+  Serial.println("=====");      // Clear any pending output
   Serial.println("O:time,humidity,tempC,heatIndC,light,soil");
   Serial.println("I:pump");
 }

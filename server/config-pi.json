@@ -3,7 +3,7 @@
     "dataPath": "./data",
     "sources": [{
         "name": "WindowPlants",
-        "port": "/dev/ttyUSB1"
+        "port": "/dev/ttyUSB0"
     }],
     "weather": {
         "location": "2193734",
