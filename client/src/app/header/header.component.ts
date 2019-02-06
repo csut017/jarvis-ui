@@ -9,6 +9,7 @@ export class HeaderComponent implements OnInit {
 
   constructor() { }
 
+  errorMessage: string;
   @Input() section: string;
 
   ngOnInit() {
