@@ -111,9 +111,13 @@ func (api *webAPI) writeDataJSON(resp http.ResponseWriter, statusCode int, data 
 func (api *webAPI) listSources(resp http.ResponseWriter, req *http.Request) {
 	log.Printf("[API] Listing sources")
 	out := struct {
-		Sources []monitorConfiguration `json:"sources"`
+		Items []string `json:"sources"`
 	}{
-		Sources: api.config.Sources,
+		Items: make([]string, len(api.config.Sources)),
+	}
+
+	for pos, source := range api.config.Sources {
+		out.Items[pos] = source.Name
 	}
 	api.writeDataJSON(resp, http.StatusOK, out)
 }

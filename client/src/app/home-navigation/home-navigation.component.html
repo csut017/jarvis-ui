@@ -2,10 +2,18 @@
   <a href="/home" class="nav-link" [class.active]="section=='home'">
     Overview
   </a>
-  <a href="/stations" class="nav-link" [class.active]="section=='stations'">
-    Stations
-  </a>
-  <a href="/locations" class="nav-link" [class.active]="section=='locations'">
-    Locations
-  </a>
+  <section class="nav-group collapsible" [class.active]="section=='stations'">
+    <input id="stations" type="checkbox">
+    <label for="stations">Stations</label>
+    <ul class="nav-list">
+      <li *ngFor="let station of stations"><a class="nav-link" href="/stations/{{station.name}}">{{station.name}}</a></li>
+    </ul>
+  </section>
+  <section class="nav-group collapsible" [class.active]="section=='locations'">
+    <input id="locations" type="checkbox">
+    <label for="locations">Locations</label>
+    <ul class="nav-list">
+      <li *ngFor="let location of rooms"><a class="nav-link" href="/locations/{{location.name}}">{{location.name}}</a></li>
+    </ul>
+  </section>
 </section>

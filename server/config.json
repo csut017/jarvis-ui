@@ -4,12 +4,12 @@
     "rooms": [{
         "name": "Office",
         "stations":[
-            "Office Plant Monitor"
+            "Plant Monitor"
         ]
     }],
     "sources":[],
     "stations": [{
-        "name": "Office Plant Monitor",
+        "name": "Plant Monitor",
         "address": "192.168.0.7"
     }],
     "weather": {

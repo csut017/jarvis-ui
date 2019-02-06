@@ -1,4 +1,6 @@
 import { Component, OnInit, Input } from '@angular/core';
+import { RoomInterface, RoomService } from '../services/room.service';
+import { StationInterface, StationService } from '../services/station.service';
 
 @Component({
   selector: 'app-home-navigation',
@@ -7,11 +9,18 @@ import { Component, OnInit, Input } from '@angular/core';
 })
 export class HomeNavigationComponent implements OnInit {
 
-  constructor() { }
+  constructor(private roomService: RoomService,
+    private stationService: StationService) { }
 
+  rooms: RoomInterface[];
+  stations: StationInterface[];
   @Input() section: string;
 
   ngOnInit() {
+    this.roomService.list()
+      .subscribe(res => this.rooms = res);
+    this.stationService.list()
+      .subscribe(res => this.stations = res);
   }
 
 }
