@@ -1,10 +1,7 @@
 {
     "staticPath": "./web",
     "dataPath": "./data",
-    "sources":[{
-        "name": "WindowPlants",
-        "port":"COM10"
-    }],
+    "sources":[],
     "weather": {
         "location": "2193734",
         "url": "https://api.openweathermap.org/data/2.5/",
