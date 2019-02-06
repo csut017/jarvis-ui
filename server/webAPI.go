@@ -273,13 +273,20 @@ func (api *webAPI) generateSpeech(resp http.ResponseWriter, req *http.Request, t
 
 func (api *webAPI) getStations(resp http.ResponseWriter, req *http.Request) {
 	log.Printf("[API] Listing stations")
+	local := 0
+	if len(api.config.Sources) > 0 {
+		local = 1
+	}
 	out := struct {
 		Items []string `json:"items"`
 	}{
-		Items: make([]string, len(api.config.Stations)),
+		Items: make([]string, len(api.config.Stations)+local),
+	}
+	if local == 1 {
+		out.Items[0] = "local"
 	}
 	for pos, station := range api.config.Stations {
-		out.Items[pos] = station.Name
+		out.Items[pos+local] = station.Name
 	}
 	api.writeDataJSON(resp, http.StatusOK, out)
 }

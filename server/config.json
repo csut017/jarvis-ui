@@ -7,7 +7,11 @@
             "Plant Monitor"
         ]
     }],
-    "sources":[],
+    "sources":[{
+        "name": "Craig's desk",
+        "port": "COM9",
+        "enabled": false
+    }],
     "stations": [{
         "name": "Plant Monitor",
         "address": "192.168.0.7"

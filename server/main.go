@@ -51,17 +51,21 @@ func main() {
 
 	log.Printf("[Main] Starting monitors")
 	for _, sensor := range config.Sources {
-		log.Printf("[Main] Starting monitor %s", sensor.Name)
-		sourceConfig := &serial.Config{Name: sensor.Port, Baud: 9600}
-		mon := &monitor{}
-		err := mon.Start(sourceConfig, sensor.Name)
-		if err != nil {
-			log.Fatalf("[Main] Unable to start monitor %s: %v", sensor.Name, err)
-		}
+		if sensor.IsEnabled {
+			log.Printf("[Main] Starting monitor %s", sensor.Name)
+			sourceConfig := &serial.Config{Name: sensor.Port, Baud: 9600}
+			mon := &monitor{}
+			err := mon.Start(sourceConfig, sensor.Name)
+			if err != nil {
+				log.Fatalf("[Main] Unable to start monitor %s: %v", sensor.Name, err)
+			}
 
-		mon.AddListener(out)
-		mon.AddListener(dataChan)
-		monitors.Add(sensor.Name, mon)
+			mon.AddListener(out)
+			mon.AddListener(dataChan)
+			monitors.Add(sensor.Name, mon)
+		} else {
+			log.Printf("[Main] Skipping monitor %s - disabled", sensor.Name)
+		}
 	}
 
 	log.Printf("[Main] Starting webserver")
