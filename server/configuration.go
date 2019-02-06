@@ -11,11 +11,15 @@ type monitorConfiguration struct {
 	Port string `json:"port"`
 }
 
-type appConfiguration struct {
-	Sources    []monitorConfiguration `json:"sources"`
-	DataPath   string                 `json:"dataPath"`
-	StaticPath string                 `json:"staticPath"`
-	Weather    *weatherConfiguration  `json:"weather"`
+type roomConfiguration struct {
+	Name     string   `json:"name"`
+	Sources  []string `json:"sources"`
+	Stations []string `json:"stations"`
+}
+
+type stationConfiguration struct {
+	Name    string `json:"name"`
+	Address string `json:"address"`
 }
 
 type weatherConfiguration struct {
@@ -24,6 +28,15 @@ type weatherConfiguration struct {
 	APIKey           string `json:"key"`
 	RefreshPeriod    int64  `json:"refresh"`
 	SunriseSunsetURL string `json:"sun"`
+}
+
+type appConfiguration struct {
+	Rooms      []roomConfiguration    `json:"rooms"`
+	Sources    []monitorConfiguration `json:"sources"`
+	Stations   []stationConfiguration `json:"stations"`
+	DataPath   string                 `json:"dataPath"`
+	StaticPath string                 `json:"staticPath"`
+	Weather    *weatherConfiguration  `json:"weather"`
 }
 
 func readConfiguration(filePath string) (*appConfiguration, error) {

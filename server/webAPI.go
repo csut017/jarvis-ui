@@ -56,9 +56,13 @@ func (api *webAPI) initialise(addr string) *mux.Router {
 	router.HandleFunc("/speech", api.generateSpeechFromGET).Methods("GET")
 	router.HandleFunc("/speech", api.generateSpeechFromPOST).Methods("POST")
 
+	// Methods for retrieving station information
+	router.HandleFunc("/stations", api.getStations).Methods("GET")
+	router.HandleFunc("/stations/{name}", api.getStationDetails).Methods("GET")
+
 	// Methods for retrieving room information
 	router.HandleFunc("/rooms", api.getRooms).Methods("GET")
-	router.HandleFunc("/rooms/{name}", api.getRoomConditions).Methods("GET")
+	router.HandleFunc("/rooms/{name}", api.getRoomDetails).Methods("GET")
 
 	// Methods for retrieving weather information
 	router.HandleFunc("/weather", api.getWeather).Methods("GET")
@@ -263,37 +267,58 @@ func (api *webAPI) generateSpeech(resp http.ResponseWriter, req *http.Request, t
 	resp.Write(audio.AudioContent)
 }
 
+func (api *webAPI) getStations(resp http.ResponseWriter, req *http.Request) {
+	log.Printf("[API] Listing stations")
+	out := struct {
+		Items []string `json:"items"`
+	}{
+		Items: make([]string, len(api.config.Stations)),
+	}
+	for pos, station := range api.config.Stations {
+		out.Items[pos] = station.Name
+	}
+	api.writeDataJSON(resp, http.StatusOK, out)
+}
+
+func (api *webAPI) getStationDetails(resp http.ResponseWriter, req *http.Request) {
+	name, store := api.retrieveSource(resp, req)
+	if store == nil {
+		return
+	}
+
+	log.Printf("[API] Generating station information for %s", name)
+	out := struct {
+		Summary string `json:"summary"`
+	}{
+		Summary: "TODO",
+	}
+	api.writeDataJSON(resp, http.StatusOK, out)
+}
+
 func (api *webAPI) getRooms(resp http.ResponseWriter, req *http.Request) {
 	log.Printf("[API] Listing rooms")
 	out := struct {
 		Items []string `json:"items"`
 	}{
-		Items: []string{},
+		Items: make([]string, len(api.config.Rooms)),
+	}
+	for pos, room := range api.config.Rooms {
+		out.Items[pos] = room.Name
 	}
 	api.writeDataJSON(resp, http.StatusOK, out)
 }
 
-func (api *webAPI) getRoomConditions(resp http.ResponseWriter, req *http.Request) {
+func (api *webAPI) getRoomDetails(resp http.ResponseWriter, req *http.Request) {
 	name, store := api.retrieveSource(resp, req)
 	if store == nil {
 		return
 	}
 
 	log.Printf("[API] Generating room information for %s", name)
-	readings := api.data.GetLast(name, 6)
-	var avgTemp float32
-	pos := store.GetSensorPosition("tempC")
-	for _, reading := range *readings {
-		avgTemp += reading.Values[pos].Value
-	}
-	avgTemp /= float32(len(*readings))
-	summary := fmt.Sprintf(
-		"The current temperature in this room is around %.f°C",
-		avgTemp)
 	out := struct {
 		Summary string `json:"summary"`
 	}{
-		Summary: summary,
+		Summary: "TODO",
 	}
 	api.writeDataJSON(resp, http.StatusOK, out)
 }
