@@ -7,22 +7,22 @@ import (
 )
 
 type monitorConfiguration struct {
-	Name      string `json:"name"`
-	Port      string `json:"port"`
-	IsEnabled bool   `json:"enabled"`
+	Name       string `json:"name"`
+	Port       string `json:"port"`
+	IsDisabled bool   `json:"disabled"`
 }
 
 type roomConfiguration struct {
-	Name      string   `json:"name"`
-	Sources   []string `json:"sources"`
-	Stations  []string `json:"stations"`
-	IsEnabled bool     `json:"enabled"`
+	Name       string   `json:"name"`
+	Sources    []string `json:"sources"`
+	Stations   []string `json:"stations"`
+	IsDisabled bool     `json:"disabled"`
 }
 
 type stationConfiguration struct {
-	Name      string `json:"name"`
-	Address   string `json:"address"`
-	IsEnabled bool   `json:"enabled"`
+	Name       string `json:"name"`
+	Address    string `json:"address"`
+	IsDisabled bool   `json:"disabled"`
 }
 
 type weatherConfiguration struct {

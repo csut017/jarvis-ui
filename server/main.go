@@ -51,7 +51,7 @@ func main() {
 
 	log.Printf("[Main] Starting monitors")
 	for _, sensor := range config.Sources {
-		if sensor.IsEnabled {
+		if !sensor.IsDisabled {
 			log.Printf("[Main] Starting monitor %s", sensor.Name)
 			sourceConfig := &serial.Config{Name: sensor.Port, Baud: 9600}
 			mon := &monitor{}

@@ -123,7 +123,7 @@ func (api *webAPI) listSources(resp http.ResponseWriter, req *http.Request) {
 
 	for pos, source := range api.config.Sources {
 		status := "Disabled"
-		if source.IsEnabled {
+		if !source.IsDisabled {
 			status = "Active"
 		}
 		out.Items[pos] = itemStatus{
@@ -302,7 +302,7 @@ func (api *webAPI) getStations(resp http.ResponseWriter, req *http.Request) {
 	}
 	for pos, station := range api.config.Stations {
 		status := "Disabled"
-		if station.IsEnabled {
+		if !station.IsDisabled {
 			status = "Active"
 		}
 		out.Items[pos+local] = itemStatus{
@@ -337,7 +337,7 @@ func (api *webAPI) getRooms(resp http.ResponseWriter, req *http.Request) {
 	}
 	for pos, room := range api.config.Rooms {
 		status := "Disabled"
-		if room.IsEnabled {
+		if !room.IsDisabled {
 			status = "Active"
 		}
 		out.Items[pos] = itemStatus{

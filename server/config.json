@@ -10,7 +10,7 @@
     "sources":[{
         "name": "Craig's desk",
         "port": "COM9",
-        "enabled": false
+        "disabled": true
     }],
     "stations": [{
         "name": "Plant Monitor",
