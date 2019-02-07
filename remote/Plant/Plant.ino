@@ -164,19 +164,10 @@ void sendDetails()
 
 void checkPinTimes()
 {
-    Serial.print("Pin:");
-    Serial.println(pinOn);
-    Serial.println(numberOfPins);
   int i;
   pinOn = false;
   for (i = 0; i < numberOfPins; i++)
   {
-    Serial.print("Loop:");
-    Serial.print(i);
-    Serial.print(",");
-    Serial.print(pinOnTimes[i]);
-    Serial.print(",");
-    Serial.println(pinOn);
     if (pinOnTimes[i] > 0)
     {
       pinOn = true;
