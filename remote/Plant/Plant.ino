@@ -7,15 +7,15 @@
 #define SOIL_IN A2     // The pin to read the soil moisture on
 
 // Output
-#define NUMBER_OF_PINS 1
-#define LED_PIN 10   // The LED pin
-#define SOIL_POWER 8 // The pin to turn on the soil sensor
-#define PUMP_1_PIN 9 // The pump pin
+#define LED_PIN 10      // The LED pin
+#define SOIL_POWER 8    // The pin to turn on the soil sensor
+#define PUMP_1_PIN 9    // The pump pin
+#define PUMP_2_PIN 11   // The pump pin
 
 // Read times (in seconds)
 #define DHT_READ 2
 #define SOIL_READ 900
-int pinOnTimes[] = {0};
+int pinOnTimes[] = {-1, -1};
 
 // Internal variables
 DHT dht(DHT_IN, DHT_TYPE);    // Allows reading the DHT11 sensor
@@ -23,11 +23,12 @@ bool ledOn = false;           // Whether the LED is on or not
 int loopCount = 0;            // The current loop count (always increases)
 String incomingCommand = "";  // The incoming command
 bool commandComplete = false; // Whether the command is complete and ready to be processed
-int pins[] = {PUMP_1_PIN};    // The associated pump pins
+int pins[] = {PUMP_1_PIN, PUMP_2_PIN};    // The associated pump pins
 bool pinOn = false;           // Whether to check any of the pins
 int photoresistor = 0;        // The last reading from the photoresistor
 int soilValue = 0;            // The last reading from the soil sensor
 int soilTime = 0;             // The cycles remaining until we read the soil sensor again
+int numberOfPins = (sizeof(pins)/sizeof(pins[0])); // The number of Pins to set
 
 void setup()
 {
@@ -41,8 +42,12 @@ void setup()
   // Initialise the pins
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
-  pinMode(PUMP_1_PIN, OUTPUT);
-  digitalWrite(PUMP_1_PIN, HIGH);
+  int i = 0;
+  for (i = 0; i < numberOfPins; i++) {
+    pinMode(pins[i], OUTPUT);
+    digitalWrite(pins[i], HIGH);
+  }
+
   pinMode(SOIL_POWER, OUTPUT);
   digitalWrite(SOIL_POWER, LOW);
 }
@@ -154,15 +159,24 @@ void sendDetails()
 {
   Serial.println("=====");      // Clear any pending output
   Serial.println("O:time,humidity,tempC,heatIndC,light,soil");
-  Serial.println("I:pump");
+  Serial.println("I:Pump 1,Pump 2");
 }
 
 void checkPinTimes()
 {
+    Serial.print("Pin:");
+    Serial.println(pinOn);
+    Serial.println(numberOfPins);
   int i;
   pinOn = false;
-  for (i = 0; i < NUMBER_OF_PINS; i++)
+  for (i = 0; i < numberOfPins; i++)
   {
+    Serial.print("Loop:");
+    Serial.print(i);
+    Serial.print(",");
+    Serial.print(pinOnTimes[i]);
+    Serial.print(",");
+    Serial.println(pinOn);
     if (pinOnTimes[i] > 0)
     {
       pinOn = true;
