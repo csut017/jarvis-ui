@@ -13,7 +13,7 @@ export class RoomService {
   constructor(private http: HttpClient,
     private logging: LoggingService) {
     this.logger = logging.get('RoomService');
-    this.current = new RoomInterface(http, logging, 'Test-1');
+    this.current = null;
   }
 
   current: RoomInterface;
@@ -25,7 +25,7 @@ export class RoomService {
     return this.http.get<roomList>(url)
       .pipe(
         tap(res => this.logger.log('Retrieved rooms', res)),
-        map(res => res.items.map(item => new RoomInterface(this.http, this.logging, item))),
+        map(res => res.items.map(item => new RoomInterface(this.http, this.logging, item.name, item.status))),
         catchError(this.logger.handleError<RoomInterface[]>(`list()`))
       );
   }
@@ -34,7 +34,8 @@ export class RoomService {
 export class RoomInterface {
   constructor(private http: HttpClient,
     logging: LoggingService,
-    public name: string) {
+    public name: string,
+    public status: string) {
     this.logger = logging.get('RoomInterface');
     this.uriName = encodeURIComponent(this.name);
   }
@@ -56,6 +57,11 @@ export class RoomInterface {
 export interface RoomDetails {
 }
 
+interface roomListItem {
+  name: string;
+  status: string;
+}
+
 interface roomList {
-  items: string[];
+  items: roomListItem[];
 }

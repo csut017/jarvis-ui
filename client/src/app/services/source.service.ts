@@ -13,7 +13,7 @@ export class SourceService {
   constructor(private http: HttpClient,
     private logging: LoggingService) {
     this.logger = logging.get('SourceService');
-    this.current = new SourceInterface(http, logging, 'Test-1');
+    this.current = null;
   }
 
   current: SourceInterface;
@@ -25,7 +25,7 @@ export class SourceService {
     return this.http.get<sourceList>(url)
       .pipe(
         tap(res => this.logger.log('Retrieved sources', res)),
-        map(res => res.items.map(item => new SourceInterface(this.http, this.logging, item))),
+        map(res => res.items.map(item => new SourceInterface(this.http, this.logging, item.name, item.status))),
         catchError(this.logger.handleError<SourceInterface[]>(`list()`))
       );
   }
@@ -34,7 +34,8 @@ export class SourceService {
 export class SourceInterface {
   constructor(private http: HttpClient,
     logging: LoggingService,
-    public name: string) {
+    public name: string,
+    public status: string) {
     this.logger = logging.get('SourceInterface');
     this.uriName = encodeURIComponent(this.name);
   }
@@ -56,6 +57,11 @@ export class SourceInterface {
 export interface SourceDetails {
 }
 
+interface sourceListItem {
+  name: string;
+  status: string;
+}
+
 interface sourceList {
-  items: string[];
+  items: sourceListItem[];
 }

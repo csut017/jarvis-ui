@@ -13,7 +13,7 @@ export class StationService {
   constructor(private http: HttpClient,
     private logging: LoggingService) {
     this.logger = logging.get('StationService');
-    this.current = new StationInterface(http, logging, 'Test-1');
+    this.current = null;
   }
 
   current: StationInterface;
@@ -25,7 +25,7 @@ export class StationService {
     return this.http.get<stationList>(url)
       .pipe(
         tap(res => this.logger.log('Retrieved stations', res)),
-        map(res => res.items.map(item => new StationInterface(this.http, this.logging, item))),
+        map(res => res.items.map(item => new StationInterface(this.http, this.logging, item.name, item.status))),
         catchError(this.logger.handleError<StationInterface[]>(`list()`))
       );
   }
@@ -34,7 +34,8 @@ export class StationService {
 export class StationInterface {
   constructor(private http: HttpClient,
     logging: LoggingService,
-    public name: string) {
+    public name: string,
+    public status: string) {
     this.logger = logging.get('StationInterface');
     this.uriName = encodeURIComponent(this.name);
   }
@@ -56,6 +57,11 @@ export class StationInterface {
 export interface StationDetails {
 }
 
+interface stationListItem {
+  name: string;
+  status: string;
+}
+
 interface stationList {
-  items: string[];
+  items: stationListItem[];
 }

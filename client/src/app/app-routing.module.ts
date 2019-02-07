@@ -8,8 +8,8 @@ import { LocationsComponent } from './locations/locations.component';
 const routes: Routes = [
   { path: '', redirectTo: '/home', pathMatch: 'full' },
   { path: 'home', component: HomeComponent },
-  { path: 'stations', component: StationsComponent },
-  { path: 'locations', component: LocationsComponent },
+  { path: 'stations/:name', component: StationsComponent },
+  { path: 'locations/:name', component: LocationsComponent },
   { path: 'settings', component: SettingsComponent }
 ];
 

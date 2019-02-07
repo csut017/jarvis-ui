@@ -24,6 +24,11 @@ type webAPI struct {
 	weather  *weatherService
 }
 
+type itemStatus struct {
+	Name   string `json:"name"`
+	Status string `json:"status"`
+}
+
 func newWebAPI(addr string, data *dataStore, monitors *monitorStore, weather *weatherService, config *appConfiguration) (*webAPI, error) {
 	api := webAPI{
 		addr:     addr,
@@ -111,13 +116,20 @@ func (api *webAPI) writeDataJSON(resp http.ResponseWriter, statusCode int, data 
 func (api *webAPI) listSources(resp http.ResponseWriter, req *http.Request) {
 	log.Printf("[API] Listing sources")
 	out := struct {
-		Items []string `json:"sources"`
+		Items []itemStatus `json:"sources"`
 	}{
-		Items: make([]string, len(api.config.Sources)),
+		Items: make([]itemStatus, len(api.config.Sources)),
 	}
 
 	for pos, source := range api.config.Sources {
-		out.Items[pos] = source.Name
+		status := "Disabled"
+		if source.IsEnabled {
+			status = "Active"
+		}
+		out.Items[pos] = itemStatus{
+			Name:   source.Name,
+			Status: status,
+		}
 	}
 	api.writeDataJSON(resp, http.StatusOK, out)
 }
@@ -278,15 +290,25 @@ func (api *webAPI) getStations(resp http.ResponseWriter, req *http.Request) {
 		local = 1
 	}
 	out := struct {
-		Items []string `json:"items"`
+		Items []itemStatus `json:"items"`
 	}{
-		Items: make([]string, len(api.config.Stations)+local),
+		Items: make([]itemStatus, len(api.config.Stations)+local),
 	}
 	if local == 1 {
-		out.Items[0] = "local"
+		out.Items[0] = itemStatus{
+			Name:   "local",
+			Status: "Active",
+		}
 	}
 	for pos, station := range api.config.Stations {
-		out.Items[pos+local] = station.Name
+		status := "Disabled"
+		if station.IsEnabled {
+			status = "Active"
+		}
+		out.Items[pos+local] = itemStatus{
+			Name:   station.Name,
+			Status: status,
+		}
 	}
 	api.writeDataJSON(resp, http.StatusOK, out)
 }
@@ -309,12 +331,19 @@ func (api *webAPI) getStationDetails(resp http.ResponseWriter, req *http.Request
 func (api *webAPI) getRooms(resp http.ResponseWriter, req *http.Request) {
 	log.Printf("[API] Listing rooms")
 	out := struct {
-		Items []string `json:"items"`
+		Items []itemStatus `json:"items"`
 	}{
-		Items: make([]string, len(api.config.Rooms)),
+		Items: make([]itemStatus, len(api.config.Rooms)),
 	}
 	for pos, room := range api.config.Rooms {
-		out.Items[pos] = room.Name
+		status := "Disabled"
+		if room.IsEnabled {
+			status = "Active"
+		}
+		out.Items[pos] = itemStatus{
+			Name:   room.Name,
+			Status: status,
+		}
 	}
 	api.writeDataJSON(resp, http.StatusOK, out)
 }

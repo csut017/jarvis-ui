@@ -15,6 +15,7 @@ export class HomeNavigationComponent implements OnInit {
   rooms: RoomInterface[];
   stations: StationInterface[];
   @Input() section: string;
+  @Input() currentItem: string;
 
   ngOnInit() {
     this.roomService.list()
