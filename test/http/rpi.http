@@ -2,9 +2,19 @@
 POST http://192.168.0.7/api/sources/WindowPlants/effectors HTTP/1.1
 
 {
-    "name": "pump",
+    "name": "Pump 1",
     "action": "on",
-    "duration": 10
+    "duration": 2
+}
+
+###
+
+POST http://192.168.0.7/api/sources/WindowPlants/effectors HTTP/1.1
+
+{
+    "name": "Pump 2",
+    "action": "on",
+    "duration": 2
 }
 
 ###

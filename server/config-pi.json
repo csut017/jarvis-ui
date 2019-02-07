@@ -1,6 +1,6 @@
 {
-    "staticPath": "./web",
-    "dataPath": "./data",
+    "staticPath": "/home/pi/arduino/web",
+    "dataPath": "/home/pi/arduino/data",
     "sources": [{
         "name": "WindowPlants",
         "port": "/dev/ttyUSB0"

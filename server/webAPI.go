@@ -29,6 +29,12 @@ type itemStatus struct {
 	Status string `json:"status"`
 }
 
+type sourceDetails struct {
+	Name      string   `json:"name,omitempty"`
+	Sensors   []string `json:"sensors"`
+	Effectors []string `json:"effectors"`
+}
+
 func newWebAPI(addr string, data *dataStore, monitors *monitorStore, weather *weatherService, config *appConfiguration) (*webAPI, error) {
 	api := webAPI{
 		addr:     addr,
@@ -52,6 +58,7 @@ func (api *webAPI) initialise(addr string) *mux.Router {
 
 	// Methods for working with sources
 	router.HandleFunc("/sources", api.listSources).Methods("GET")
+	router.HandleFunc("/sources/{name}", api.getSourceDetails).Methods("GET")
 	router.HandleFunc("/sources/{name}/values", api.listSourceValues).Methods("GET")
 	router.HandleFunc("/sources/{name}/sensors", api.listSourceOutput).Methods("GET")
 	router.HandleFunc("/sources/{name}/effectors", api.listSourceInput).Methods("GET")
@@ -170,6 +177,20 @@ func (api *webAPI) listSourceValues(resp http.ResponseWriter, req *http.Request)
 	}{
 		Count: len(*items),
 		Items: items,
+	}
+	api.writeDataJSON(resp, http.StatusOK, out)
+}
+
+func (api *webAPI) getSourceDetails(resp http.ResponseWriter, req *http.Request) {
+	name, store := api.retrieveSource(resp, req)
+	if store == nil {
+		return
+	}
+
+	log.Printf("[API] Getting details for source %s", name)
+	out := sourceDetails{
+		Sensors:   store.InputTypes(),
+		Effectors: store.OutputTypes(),
 	}
 	api.writeDataJSON(resp, http.StatusOK, out)
 }
@@ -314,18 +335,58 @@ func (api *webAPI) getStations(resp http.ResponseWriter, req *http.Request) {
 }
 
 func (api *webAPI) getStationDetails(resp http.ResponseWriter, req *http.Request) {
-	name, store := api.retrieveSource(resp, req)
-	if store == nil {
-		return
-	}
+	vars := mux.Vars(req)
+	name := vars["name"]
+	if name == "local" {
+		log.Printf("[API] Generating local station information")
+		out := struct {
+			Sources []sourceDetails `json:"sources"`
+		}{
+			Sources: make([]sourceDetails, len(*api.monitors)),
+		}
+		pos := 0
+		for name, store := range *api.monitors {
+			out.Sources[pos] = sourceDetails{
+				Name:      name,
+				Sensors:   store.InputTypes(),
+				Effectors: store.OutputTypes(),
+			}
+			pos++
+		}
 
-	log.Printf("[API] Generating station information for %s", name)
-	out := struct {
-		Summary string `json:"summary"`
-	}{
-		Summary: "TODO",
+		api.writeDataJSON(resp, http.StatusOK, out)
+	} else {
+		station := api.config.FindStation(name)
+
+		if station == nil {
+			log.Printf("[API] Cannot find source %s", name)
+			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Unknown source")
+			return
+		}
+
+		res, err := http.Get("http://" + station.Address + "/api/stations/local")
+		if err != nil {
+			log.Printf("[API] Cannot query source %s: %v", name, err)
+			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Source not available")
+			return
+		} else if res.StatusCode != http.StatusOK {
+			err = fmt.Errorf("Unable to retrieve from source: %s", res.Status)
+			log.Printf("[API] Cannot query source %s: %v", name, err)
+			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Source not available")
+			return
+		}
+
+		log.Printf("[API] Generating station information for %s", name)
+		out := struct {
+			Sources []sourceDetails `json:"sources"`
+		}{}
+		if err = json.NewDecoder(res.Body).Decode(&out); err != nil {
+			log.Printf("[API] Cannot decode JSON from source %s: %v", name, err)
+			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Source not available")
+			return
+		}
+		api.writeDataJSON(resp, http.StatusOK, out)
 	}
-	api.writeDataJSON(resp, http.StatusOK, out)
 }
 
 func (api *webAPI) getRooms(resp http.ResponseWriter, req *http.Request) {

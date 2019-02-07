@@ -108,9 +108,6 @@ func initialiseWebServer(addr string, data *dataStore, monitors *monitorStore, w
 	rootMiddleware := interpose.New()
 
 	rootRouter := mux.NewRouter()
-	rootRouter.PathPrefix("/s/css").Handler(http.StripPrefix("/s/css", http.FileServer(http.Dir(filepath.Join(config.StaticPath, "css")))))
-	rootRouter.PathPrefix("/s/media").Handler(http.StripPrefix("/s/media", http.FileServer(http.Dir(filepath.Join(config.StaticPath, "media")))))
-	rootRouter.PathPrefix("/s/js").Handler(http.StripPrefix("/s/js", http.FileServer(http.Dir(filepath.Join(config.StaticPath, "js")))))
 	rootRouter.HandleFunc("/favicon.ico", func(resp http.ResponseWriter, req *http.Request) {
 		http.ServeFile(resp, req, filepath.Join(config.StaticPath, "media/favicon.ico"))
 	})
@@ -129,7 +126,8 @@ func initialiseWebServer(addr string, data *dataStore, monitors *monitorStore, w
 	apiMiddleware.UseHandler(apiRouter)
 	rootRouter.PathPrefix("/api").Handler(apiMiddleware)
 
-	fileServeRouter := formatFileName(http.FileServer(http.Dir(filepath.Join(config.StaticPath, "html"))))
+	log.Printf("[Main] Serving website from %s", config.StaticPath)
+	fileServeRouter := formatFileName(http.FileServer(http.Dir(config.StaticPath)))
 	fileServeMiddleware := interpose.New()
 	fileServeMiddleware.Use(disableCaching)
 	fileServeMiddleware.UseHandler(fileServeRouter)
@@ -193,9 +191,11 @@ func formatFileName(h http.Handler) http.Handler {
 	stripper := http.StripPrefix("/", h)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := r.URL.Path
-		if !strings.HasSuffix(p, ".html") && (p != "/") {
-			p = p + ".html"
-			log.Printf("[Main] Mapped URL to %s", p)
+		if !strings.HasSuffix(p, ".js") && !strings.HasSuffix(p, ".css") && p != "/" {
+			p = "/"
+			log.Printf("[Main] Mapped URL %s to %s", r.URL.Path, p)
+		} else {
+			log.Printf("[Main] URL %s not modified", r.URL.Path)
 		}
 		r.URL.Path = p
 		stripper.ServeHTTP(w, r)

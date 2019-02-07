@@ -40,6 +40,16 @@ type appConfiguration struct {
 	DataPath   string                 `json:"dataPath"`
 	StaticPath string                 `json:"staticPath"`
 	Weather    *weatherConfiguration  `json:"weather"`
+
+	stations map[string]stationConfiguration
+}
+
+func (config *appConfiguration) FindStation(name string) *stationConfiguration {
+	station, ok := config.stations[name]
+	if !ok {
+		return nil
+	}
+	return &station
 }
 
 func readConfiguration(filePath string) (*appConfiguration, error) {
@@ -62,6 +72,11 @@ func readConfiguration(filePath string) (*appConfiguration, error) {
 
 	if settings.StaticPath == "" {
 		settings.StaticPath = "static"
+	}
+
+	settings.stations = map[string]stationConfiguration{}
+	for _, station := range settings.Stations {
+		settings.stations[station.Name] = station
 	}
 
 	return &settings, nil
