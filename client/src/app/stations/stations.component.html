@@ -2,14 +2,34 @@
   <app-header section="home"></app-header>
   <div class="content-container">
     <div class="content-area">
-      <div class="clr-row">
-        <div class="clr-col-lg-4 clr-col-12">
-          <div class="card">
+      <div class="clr-row" *ngIf="station">
+        <div class="clr-col-lg-4 clr-col-12" *ngFor="let source of station.sources">
+          <div class="card clickable">
             <div class="card-block">
-              <h3 class="card-title">Sensor</h3>
-              <p class="card-text">
-                ...
-              </p>
+              <h3 class="card-title">
+                <clr-icon shape="details"></clr-icon>
+                {{source.name}}
+              </h3>
+              <div class="card-text">
+                <div class="clr-row">
+                  <div class="clr-col">
+                    <ul class="list-unstyled">
+                      <li *ngFor="let sensor of source.sensors">
+                          <clr-icon shape="logout"></clr-icon>
+                        {{sensor}}
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="clr-col">
+                    <ul class="list-unstyled">
+                      <li *ngFor="let effector of source.effectors">
+                        <clr-icon shape="login"></clr-icon>
+                        {{effector}}
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

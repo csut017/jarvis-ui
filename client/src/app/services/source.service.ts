@@ -4,6 +4,7 @@ import { LoggingService, Logger } from './logging.service';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { tap, catchError, map } from 'rxjs/operators';
+import { List } from './common';
 
 @Injectable({
   providedIn: 'root'
@@ -11,57 +12,38 @@ import { tap, catchError, map } from 'rxjs/operators';
 export class SourceService {
 
   constructor(private http: HttpClient,
-    private logging: LoggingService) {
+    logging: LoggingService) {
     this.logger = logging.get('SourceService');
-    this.current = null;
   }
 
-  current: SourceInterface;
   private logger: Logger;
 
-  list(): Observable<SourceInterface[]> {
+  list(): Observable<Source[]> {
     const url = `${environment.apiURL}sources`;
     this.logger.log(`Retrieving sources`, url);
-    return this.http.get<sourceList>(url)
+    return this.http.get<List<Source>>(url)
       .pipe(
         tap(res => this.logger.log('Retrieved sources', res)),
-        map(res => res.items.map(item => new SourceInterface(this.http, this.logging, item.name, item.status))),
-        catchError(this.logger.handleError<SourceInterface[]>(`list()`))
+        catchError(this.logger.handleError<List<Source>>(`list()`)),
+        map(res => res ? res.items : [])
       );
   }
-}
 
-export class SourceInterface {
-  constructor(private http: HttpClient,
-    logging: LoggingService,
-    public name: string,
-    public status: string) {
-    this.logger = logging.get('SourceInterface');
-    this.uriName = encodeURIComponent(this.name);
-  }
-
-  private uriName: string;
-  private logger: Logger;
-
-  get(): Observable<SourceDetails> {
-    const url = `${environment.apiURL}sources/${this.uriName}`;
-    this.logger.log(`Retrieving source details for ${this.name}`, url);
-    return this.http.get<SourceDetails>(url)
+  get(name: string): Observable<Source> {
+    const uriName = encodeURIComponent(name);
+    const url = `${environment.apiURL}stations/${uriName}`;
+    this.logger.log(`Retrieving source details for ${name}`, url);
+    return this.http.get<Source>(url)
       .pipe(
         tap(res => this.logger.log('Retrieved source details', res)),
-        catchError(this.logger.handleError<SourceDetails>(`'${this.name}'->get()`))
+        catchError(this.logger.handleError<Source>(`get('${name}')`)),
       );
   }
 }
 
-export interface SourceDetails {
-}
-
-interface sourceListItem {
+export interface Source {
   name: string;
   status: string;
-}
-
-interface sourceList {
-  items: sourceListItem[];
+  sensors: string[];
+  effectors: string[];
 }

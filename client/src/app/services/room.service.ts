@@ -4,6 +4,7 @@ import { LoggingService, Logger } from './logging.service';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { tap, catchError, map } from 'rxjs/operators';
+import { List } from './common';
 
 @Injectable({
   providedIn: 'root'
@@ -11,57 +12,36 @@ import { tap, catchError, map } from 'rxjs/operators';
 export class RoomService {
 
   constructor(private http: HttpClient,
-    private logging: LoggingService) {
+    logging: LoggingService) {
     this.logger = logging.get('RoomService');
-    this.current = null;
   }
 
-  current: RoomInterface;
   private logger: Logger;
 
-  list(): Observable<RoomInterface[]> {
+  list(): Observable<Room[]> {
     const url = `${environment.apiURL}rooms`;
     this.logger.log(`Retrieving rooms`, url);
-    return this.http.get<roomList>(url)
+    return this.http.get<List<Room>>(url)
       .pipe(
         tap(res => this.logger.log('Retrieved rooms', res)),
-        map(res => res.items.map(item => new RoomInterface(this.http, this.logging, item.name, item.status))),
-        catchError(this.logger.handleError<RoomInterface[]>(`list()`))
+        catchError(this.logger.handleError<List<Room>>(`list()`)),
+        map(res => res ? res.items : [])
       );
   }
-}
 
-export class RoomInterface {
-  constructor(private http: HttpClient,
-    logging: LoggingService,
-    public name: string,
-    public status: string) {
-    this.logger = logging.get('RoomInterface');
-    this.uriName = encodeURIComponent(this.name);
-  }
-
-  private uriName: string;
-  private logger: Logger;
-
-  get(): Observable<RoomDetails> {
-    const url = `${environment.apiURL}rooms/${this.uriName}`;
-    this.logger.log(`Retrieving room details for ${this.name}`, url);
-    return this.http.get<RoomDetails>(url)
+  get(name: string): Observable<Room> {
+    const uriName = encodeURIComponent(name);
+    const url = `${environment.apiURL}rooms/${uriName}`;
+    this.logger.log(`Retrieving room details for ${name}`, url);
+    return this.http.get<Room>(url)
       .pipe(
         tap(res => this.logger.log('Retrieved room details', res)),
-        catchError(this.logger.handleError<RoomDetails>(`'${this.name}'->get()`))
+        catchError(this.logger.handleError<Room>(`get('${name}')`))
       );
   }
 }
 
-export interface RoomDetails {
-}
-
-interface roomListItem {
+export interface Room {
   name: string;
   status: string;
-}
-
-interface roomList {
-  items: roomListItem[];
 }
