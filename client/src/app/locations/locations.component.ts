@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { RoomService } from '../services/room.service';
+import { RoomService, Room } from '../services/room.service';
 
 @Component({
   selector: 'app-locations',
@@ -13,9 +13,20 @@ export class LocationsComponent implements OnInit {
     private roomService: RoomService) { }
 
   name: string;
+  location: Room;
 
   ngOnInit() {
-    this.name = this.route.snapshot.paramMap.get('name');
+    const name = this.route.snapshot.paramMap.get('name');
+    this.loadLocation(name);
+  }
+
+  loadLocation(name: string) {
+    this.location = null;
+    this.name = name;
+    this.roomService.get(this.name)
+      .subscribe(res => {
+        this.location = res;
+      });
   }
 
 }

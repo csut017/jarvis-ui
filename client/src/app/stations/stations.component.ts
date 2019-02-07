@@ -16,7 +16,13 @@ export class StationsComponent implements OnInit {
   station: Station;
 
   ngOnInit() {
-    this.name = this.route.snapshot.paramMap.get('name');
+    const name = this.route.snapshot.paramMap.get('name');
+    this.loadStation(name);
+  }
+
+  loadStation(name: string) {
+    this.station = null;
+    this.name = name;
     this.stationService.get(this.name)
       .subscribe(res => {
         this.station = res;

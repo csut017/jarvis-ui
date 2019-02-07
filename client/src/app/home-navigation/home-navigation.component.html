@@ -1,5 +1,5 @@
 <section class="sidenav-content">
-  <a href="/home" class="nav-link" [class.active]="section=='home'">
+  <a routerLink="/home" class="nav-link" [class.active]="section=='home'">
     Overview
   </a>
   <section class="nav-group collapsible">
@@ -7,7 +7,9 @@
     <label for="stations">Stations</label>
     <ul class="nav-list">
       <li *ngFor="let station of stations">
-        <a class="nav-link" href="/stations/{{station.name}}" [class.active]="section=='stations' && currentItem==station.name">{{station.name}}</a>
+        <a class="nav-link" routerLink="/stations/{{station.name}}" [class.active]="section=='stations' && currentItem==station.name" (click)="onStationChanged(station)">
+          {{station.name}}
+        </a>
       </li>
     </ul>
   </section>
@@ -16,7 +18,9 @@
     <label for="locations">Locations</label>
     <ul class="nav-list">
       <li *ngFor="let location of rooms">
-        <a class="nav-link" href="/locations/{{location.name}}" [class.active]="section=='locations' && currentItem==location.name">{{location.name}}</a>
+        <a class="nav-link" routerLink="/locations/{{location.name}}" [class.active]="section=='locations' && currentItem==location.name" (click)="onLocationChanged(location)">
+          {{location.name}}
+        </a>
       </li>
     </ul>
   </section>

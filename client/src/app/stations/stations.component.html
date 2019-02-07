@@ -2,6 +2,28 @@
   <app-header section="home"></app-header>
   <div class="content-container">
     <div class="content-area">
+      <div *ngIf="!station">
+        <span class="spinner spinner-inline">
+          ...
+        </span>
+        <span>
+          Loading, please wait...
+        </span>
+      </div>
+      <div *ngIf="station && !station.sources.length">
+        <div class="alert alert-warning" role="alert">
+          <div class="alert-items">
+            <div class="alert-item static">
+              <div class="alert-icon-wrapper">
+                <clr-icon class="alert-icon" shape="exclamation-triangle"></clr-icon>
+              </div>
+              <span class="alert-text">
+                There are no active sources.
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="clr-row" *ngIf="station">
         <div class="clr-col-lg-4 clr-col-12" *ngFor="let source of station.sources">
           <div class="card clickable">
@@ -15,7 +37,7 @@
                   <div class="clr-col">
                     <ul class="list-unstyled">
                       <li *ngFor="let sensor of source.sensors">
-                          <clr-icon shape="logout"></clr-icon>
+                        <clr-icon shape="logout"></clr-icon>
                         {{sensor}}
                       </li>
                     </ul>
@@ -36,7 +58,7 @@
       </div>
     </div>
     <nav class="sidenav">
-      <app-home-navigation section="stations" [currentItem]="name"></app-home-navigation>
+      <app-home-navigation section="stations" [currentItem]="name" (stationChanged)="loadStation($event.name)"></app-home-navigation>
     </nav>
   </div>
 </div>

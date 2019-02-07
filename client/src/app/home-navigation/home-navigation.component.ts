@@ -1,4 +1,4 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { Room, RoomService } from '../services/room.service';
 import { StationService, Station } from '../services/station.service';
 
@@ -16,6 +16,8 @@ export class HomeNavigationComponent implements OnInit {
   stations: Station[];
   @Input() section: string;
   @Input() currentItem: string;
+  @Output() stationChanged = new EventEmitter<Station>();
+  @Output() locationChanged = new EventEmitter<Room>();
 
   ngOnInit() {
     this.roomService.list()
@@ -24,4 +26,11 @@ export class HomeNavigationComponent implements OnInit {
       .subscribe(res => this.stations = res);
   }
 
+  onStationChanged(value: Station) {
+    this.stationChanged.emit(value);
+  }
+
+  onLocationChanged(value: Room) {
+    this.locationChanged.emit(value);
+  }
 }
