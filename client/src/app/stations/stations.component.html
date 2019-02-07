@@ -24,9 +24,9 @@
           </div>
         </div>
       </div>
-      <div class="clr-row" *ngIf="station">
+      <div class="clr-row" *ngIf="station && !source">
         <div class="clr-col-lg-4 clr-col-12" *ngFor="let source of station.sources">
-          <div class="card clickable">
+          <a class="card clickable" routerLink="/stations/{{name}}/sources/{{source.name}}">
             <div class="card-block">
               <h3 class="card-title">
                 <clr-icon shape="details"></clr-icon>
@@ -53,8 +53,11 @@
                 </div>
               </div>
             </div>
-          </div>
+          </a>
         </div>
+      </div>
+      <div *ngIf="station && source">
+        <h2>{{source}}</h2>
       </div>
     </div>
     <nav class="sidenav">
