@@ -12,3 +12,4 @@
 *.out
 server/server
 client/dist/jarvis-ui-client/*.*
+client/node_modules/**/*.*
