@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { StationService, Station } from '../services/station.service';
+import * as Highcharts from 'highcharts';
+import * as moment from 'moment';
 
 @Component({
   selector: 'app-stations',
@@ -16,6 +18,37 @@ export class StationsComponent implements OnInit {
   station: Station;
   source: string;
   loadError: string;
+
+  highcharts = Highcharts;
+  chartOptions = {
+    chart: {
+      type: 'spline'
+    },
+    time: {
+      useUTC: false
+    },
+    title: {
+      text: ''
+    },
+    tooltip: {
+      formatter: function () {
+        var s = '<b>' + moment(this.x).format("D MMM YYYY, h:mm a") + '</b>';
+        this.points.forEach(point => {
+          s += '<br/>' + point.series.name + ': ' +
+            point.y + (point.series.tooltipOptions.pointFormat || '');
+        });
+        return s;
+      },
+      shared: true
+    },
+    xAxis: {
+      title: {
+        text: 'Time'
+      },
+      type: 'datetime',
+      crosshair: true
+    }
+  };
 
   ngOnInit() {
     const name = this.route.snapshot.paramMap.get('name'),

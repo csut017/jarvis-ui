@@ -76,6 +76,12 @@
           Back
         </a>
         <h2>{{source}}</h2>
+        <div>
+            <highcharts-chart style="width: 100%; display: block"
+            [Highcharts]="highcharts"
+            [options]="chartOptions">
+          </highcharts-chart>
+        </div>
       </div>
     </div>
     <nav class="sidenav">
