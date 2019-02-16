@@ -15,6 +15,7 @@ export class StationsComponent implements OnInit {
   name: string;
   station: Station;
   source: string;
+  loadError: string;
 
   ngOnInit() {
     const name = this.route.snapshot.paramMap.get('name'),
@@ -31,7 +32,8 @@ export class StationsComponent implements OnInit {
     this.name = name;
     this.stationService.get(this.name)
       .subscribe(res => {
-        this.station = res;
+        this.station = res.item;
+        this.loadError = res.message;
       });
   }
 

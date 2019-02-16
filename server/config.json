@@ -14,7 +14,7 @@
     }],
     "stations": [{
         "name": "Plant Monitor",
-        "address": "192.168.0.7"
+        "address": "192.168.0.2"
     }],
     "weather": {
         "location": "2193734",

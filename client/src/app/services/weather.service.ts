@@ -3,7 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { LoggingService, Logger } from './logging.service';
 import { environment } from 'src/environments/environment';
 import { Observable } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, tap, map } from 'rxjs/operators';
+import { Result } from './result';
 
 @Injectable({
   providedIn: 'root'
@@ -17,13 +18,14 @@ export class WeatherService {
 
   private logger: Logger;
 
-  getWeather(): Observable<WeatherSummary> {
+  getWeather(): Observable<Result<WeatherSummary>> {
     const url = environment.apiURL + `weather`;
     this.logger.log('Retrieving current weather information', url);
     return this.http.get<WeatherSummary>(url)
       .pipe(
         tap(res => this.logger.log('Retrieved weather', res)),
-        catchError(this.logger.handleError<WeatherSummary>(`getWeather()`))
+        map(res => Result.new(res)),
+        catchError(this.logger.handleError(`getWeather()`, Result.new<WeatherSummary>(null, 'Unable to retrieve weather')))
       );
   }
 }

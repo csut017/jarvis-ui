@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { tap, catchError, map } from 'rxjs/operators';
 import { List } from './common';
+import { Result, Results } from './result';
 
 @Injectable({
   providedIn: 'root'
@@ -18,25 +19,26 @@ export class SourceService {
 
   private logger: Logger;
 
-  list(): Observable<Source[]> {
+  list(): Observable<Results<Source>> {
     const url = `${environment.apiURL}sources`;
     this.logger.log(`Retrieving sources`, url);
     return this.http.get<List<Source>>(url)
       .pipe(
         tap(res => this.logger.log('Retrieved sources', res)),
-        catchError(this.logger.handleError<List<Source>>(`list()`)),
-        map(res => res ? res.items : [])
+        map(res => Results.new(res ? res.items : [])),
+        catchError(this.logger.handleError(`list()`, Results.new<Source>(null, 'Unable to retrieve sources')))
       );
   }
 
-  get(name: string): Observable<Source> {
+  get(name: string): Observable<Result<Source>> {
     const uriName = encodeURIComponent(name);
     const url = `${environment.apiURL}stations/${uriName}`;
     this.logger.log(`Retrieving source details for ${name}`, url);
     return this.http.get<Source>(url)
       .pipe(
         tap(res => this.logger.log('Retrieved source details', res)),
-        catchError(this.logger.handleError<Source>(`get('${name}')`)),
+        map(res => Result.new(res)),
+        catchError(this.logger.handleError(`get('${name}')`, Result.new<Source>(null, 'Unable to retrieve source'))),
       );
   }
 }

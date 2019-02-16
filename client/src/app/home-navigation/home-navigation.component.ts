@@ -23,7 +23,7 @@ export class HomeNavigationComponent implements OnInit {
     this.roomService.list()
       .subscribe(res => this.rooms = res);
     this.stationService.list()
-      .subscribe(res => this.stations = res);
+      .subscribe(res => this.stations = res.items);
   }
 
   onStationChanged(value: Station) {

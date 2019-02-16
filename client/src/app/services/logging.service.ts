@@ -16,10 +16,11 @@ export class LoggingService {
 export class Logger {
   constructor(private source: string) { }
 
-  log(msg: string, data?: any) {
-    if (data) {
+  log(msg: string, data?: any, includeTrace?: boolean) {
+    if (data || includeTrace) {
       console.groupCollapsed(`[${this.source}] ${msg}`);
-      console.log(data);
+      if (data) console.log(data);
+      if (includeTrace) console.trace();
       console.groupEnd();
     } else {
       console.log(`[${this.source}] ${msg}`);
@@ -28,8 +29,10 @@ export class Logger {
 
   handleError<T>(operation = 'operation', result?: T) {
     return (error: any): Observable<T> => {
+      console.groupCollapsed(`[${this.source}] ${operation} failed: ${error.message}`);
       console.error(error);
-      this.log(`${operation} failed: ${error.message}`);
+      console.trace();
+      console.groupEnd();
       return of(result as T);
     };
   }

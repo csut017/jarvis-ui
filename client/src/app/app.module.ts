@@ -13,6 +13,8 @@ import { StationsComponent } from './stations/stations.component';
 import { LocationsComponent } from './locations/locations.component';
 import { HomeNavigationComponent } from './home-navigation/home-navigation.component'; 
 
+import { HighchartsChartModule } from 'highcharts-angular';
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -28,7 +30,8 @@ import { HomeNavigationComponent } from './home-navigation/home-navigation.compo
     AppRoutingModule,
     HttpClientModule,
     ClarityModule,
-    BrowserAnimationsModule
+    BrowserAnimationsModule,
+    HighchartsChartModule
   ],
   providers: [],
   bootstrap: [AppComponent]
