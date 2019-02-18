@@ -21,12 +21,15 @@ export class StationsComponent implements OnInit {
   sourceName: string;
   loadError: string;
   effectors: effector[];
+  sensors: string[];
+  chartInstance: any;
 
   highcharts = Highcharts;
   chartOptions = {
     chart: {
       type: 'spline'
     },
+    series: [],
     time: {
       useUTC: false
     },
@@ -62,7 +65,7 @@ export class StationsComponent implements OnInit {
     this.loadStation(name);
   }
 
-  loadStation(name: string) {
+  loadStation(name: string):void {
     this.station = null;
     this.name = name;
     this.sourceDetails = null;
@@ -73,8 +76,49 @@ export class StationsComponent implements OnInit {
         if (this.sourceName) {
           this.sourceDetails = this.station.sources.find(s => s.name == this.sourceName);
           this.effectors = this.sourceDetails.effectors.map(e => new effector(e));
+          this.loadValues();
+          this.sensors = this.sourceDetails.sensors.filter(s => s != 'time');
+          this.chartOptions.series = this.sensors.map(s => ({
+            name: s,
+            data: [],
+            marker: {
+                radius: 3
+            },
+            tooltip: {
+                pointFormat: ''
+            }
+          }));
         }
       });
+  }
+
+  loadValues(): void {
+    this.stationService.getValues(this.name, this.sourceName)
+    .subscribe(res => {
+      if (res.success) {
+        let dataMapping = {},
+          chartData = [];
+        this.sensors.forEach((s, i) => {
+          dataMapping[s] = i;
+          chartData[i] = [];
+        });
+        res.item.items.forEach(s => {
+          const time = Date.parse(s.time);
+          s.values.forEach(v => {
+            const index = dataMapping[v.name];
+            if (index || (index === 0)) {
+              chartData[index].push([time, v.value]);
+            }
+          });
+        });
+        for (let index in chartData) {
+          this.chartInstance.series[index].setData(chartData[index], false);
+        }
+        this.chartInstance.redraw();
+      } else {
+        this.loadError = 'Unable to retrieve sensor values';
+      }
+    });
   }
 
   turnEffectorOn(eff: effector): void {
@@ -83,6 +127,10 @@ export class StationsComponent implements OnInit {
 
   turnEffectorOff(eff: effector): void {
     
+  }
+
+  storeChartInstance(chartInstance: any): void {
+    this.chartInstance = chartInstance;
   }
 }
 
