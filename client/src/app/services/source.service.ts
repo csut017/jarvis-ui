@@ -32,7 +32,7 @@ export class SourceService {
 
   get(name: string): Observable<Result<Source>> {
     const uriName = encodeURIComponent(name);
-    const url = `${environment.apiURL}stations/${uriName}`;
+    const url = `${environment.apiURL}sources/${uriName}`;
     this.logger.log(`Retrieving source details for ${name}`, url);
     return this.http.get<Source>(url)
       .pipe(

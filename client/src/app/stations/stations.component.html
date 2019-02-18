@@ -38,7 +38,7 @@
           </div>
         </div>
       </div>
-      <div class="clr-row" *ngIf="station && !source">
+      <div class="clr-row" *ngIf="station && !sourceDetails">
         <div class="clr-col-lg-4 clr-col-12" *ngFor="let source of station.sources">
           <a class="card clickable" routerLink="/stations/{{name}}/sources/{{source.name}}">
             <div class="card-block">
@@ -70,18 +70,39 @@
           </a>
         </div>
       </div>
-      <div *ngIf="station && source">
+      <div *ngIf="station && sourceDetails">
         <a routerLink="/stations/{{name}}">
-          <clr-icon shape="arrow"  style="transform: rotate(270deg);"></clr-icon>
+          <clr-icon shape="arrow" style="transform: rotate(270deg);"></clr-icon>
           Back
         </a>
-        <h2>{{source}}</h2>
+        <h2>{{sourceDetails.name}}</h2>
         <div>
-            <highcharts-chart style="width: 100%; display: block"
-            [Highcharts]="highcharts"
-            [options]="chartOptions">
+          <highcharts-chart style="width: 100%; display: block" [Highcharts]="highcharts" [options]="chartOptions">
           </highcharts-chart>
         </div>
+        <form clrForm>
+          <div class="clr-row">
+            <div class="clr-col-lg-4 clr-col-12" *ngFor="let effector of effectors">
+              <div class="card">
+                <div class="card-header">
+                  {{effector.name}}
+                </div>
+                <div class="card-block">
+                  <div class="card-text">
+                    <clr-input-container>
+                      <label>Duration (sec):</label>
+                      <input clrInput name="duration" [(ngModel)]="effector.duration" type="number" min="1" max="300" />
+                    </clr-input-container>
+                  </div>
+                </div>
+                <div class="card-footer">
+                  <button class="btn btn-sm btn-link" (click)="turnEffectorOn(effector)">Turn On</button>
+                  <button class="btn btn-sm btn-link" (click)="turnEffectorOff(effector)">Turn Off</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
     <nav class="sidenav">
