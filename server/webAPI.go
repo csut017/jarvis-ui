@@ -58,23 +58,25 @@ func (api *webAPI) initialise(addr string) *mux.Router {
 
 	// Methods for working with sources
 	router.HandleFunc("/sources", api.listSources).Methods("GET")
-	router.HandleFunc("/sources/{name}", api.getSourceDetails).Methods("GET")
-	router.HandleFunc("/sources/{name}/values", api.listSourceValues).Methods("GET")
-	router.HandleFunc("/sources/{name}/sensors", api.listSourceOutput).Methods("GET")
-	router.HandleFunc("/sources/{name}/effectors", api.listSourceInput).Methods("GET")
-	router.HandleFunc("/sources/{name}/effectors", api.processSourceCommand).Methods("POST")
+	router.HandleFunc("/sources/{source}", api.getSourceDetails).Methods("GET")
+	router.HandleFunc("/sources/{source}/values", api.listSourceValues).Methods("GET")
+	router.HandleFunc("/sources/{source}/sensors", api.listSourceOutput).Methods("GET")
+	router.HandleFunc("/sources/{source}/effectors", api.listSourceInput).Methods("GET")
+	router.HandleFunc("/sources/{source}/effectors", api.processSourceCommand).Methods("POST")
 
 	// Methods for generating speech
 	router.HandleFunc("/speech", api.generateSpeechFromGET).Methods("GET")
 	router.HandleFunc("/speech", api.generateSpeechFromPOST).Methods("POST")
 
-	// Methods for retrieving station information
+	// Methods for working with stations
 	router.HandleFunc("/stations", api.getStations).Methods("GET")
-	router.HandleFunc("/stations/{name}", api.getStationDetails).Methods("GET")
+	router.HandleFunc("/stations/{station}", api.getStationDetails).Methods("GET")
+	router.HandleFunc("/stations/{station}/sources/{source}/values", api.listStationSourceValues).Methods("GET")
+	router.HandleFunc("/stations/{station}/sources/{source}/effectors", api.processStationSourceCommand).Methods("POST")
 
 	// Methods for retrieving room information
 	router.HandleFunc("/rooms", api.getRooms).Methods("GET")
-	router.HandleFunc("/rooms/{name}", api.getRoomDetails).Methods("GET")
+	router.HandleFunc("/rooms/{room}", api.getRoomDetails).Methods("GET")
 
 	// Methods for retrieving weather information
 	router.HandleFunc("/weather", api.getWeather).Methods("GET")
@@ -143,7 +145,7 @@ func (api *webAPI) listSources(resp http.ResponseWriter, req *http.Request) {
 
 func (api *webAPI) retrieveSource(resp http.ResponseWriter, req *http.Request) (string, *monitor) {
 	vars := mux.Vars(req)
-	name := vars["name"]
+	name := vars["source"]
 	store := api.monitors.Get(name)
 	if store == nil {
 		log.Printf("[API] Cannot find source %s", name)
@@ -336,7 +338,7 @@ func (api *webAPI) getStations(resp http.ResponseWriter, req *http.Request) {
 
 func (api *webAPI) getStationDetails(resp http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-	name := vars["name"]
+	name := vars["station"]
 	if name == "local" {
 		log.Printf("[API] Generating local station information")
 		out := struct {
@@ -359,32 +361,123 @@ func (api *webAPI) getStationDetails(resp http.ResponseWriter, req *http.Request
 		station := api.config.FindStation(name)
 
 		if station == nil {
-			log.Printf("[API] Cannot find source %s", name)
-			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Unknown source")
+			log.Printf("[API] Cannot find station %s", name)
+			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Unknown station")
 			return
 		}
 
 		res, err := http.Get("http://" + station.Address + "/api/stations/local")
 		if err != nil {
-			log.Printf("[API] Cannot query source %s: %v", name, err)
-			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Source not available")
+			log.Printf("[API] Cannot query station %s: %v", name, err)
+			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Station not available")
 			return
 		} else if res.StatusCode != http.StatusOK {
-			err = fmt.Errorf("Unable to retrieve from source: %s", res.Status)
-			log.Printf("[API] Cannot query source %s: %v", name, err)
-			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Source not available")
+			err = fmt.Errorf("Unable to retrieve from station: %s", res.Status)
+			log.Printf("[API] Cannot query station %s: %v", name, err)
+			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Station not available")
 			return
 		}
 
 		log.Printf("[API] Generating station information for %s", name)
 		out := struct {
+			Station string          `json:"station"`
 			Sources []sourceDetails `json:"sources"`
 		}{}
 		if err = json.NewDecoder(res.Body).Decode(&out); err != nil {
-			log.Printf("[API] Cannot decode JSON from source %s: %v", name, err)
-			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Source not available")
+			log.Printf("[API] Cannot decode JSON from station %s: %v", name, err)
+			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Station not available")
 			return
 		}
+		out.Station = name
+		api.writeDataJSON(resp, http.StatusOK, out)
+	}
+}
+
+func (api *webAPI) listStationSourceValues(resp http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	name := vars["station"]
+	if name == "local" {
+		log.Printf("[API] Generating local station values")
+		api.listSourceValues(resp, req)
+	} else {
+		station := api.config.FindStation(name)
+		if station == nil {
+			log.Printf("[API] Cannot find station %s", name)
+			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Unknown station")
+			return
+		}
+
+		sourceName := vars["source"]
+		res, err := http.Get("http://" + station.Address + "/api/sources/" + sourceName + "/values")
+		if err != nil {
+			log.Printf("[API] Cannot query station %s: %v", name, err)
+			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Station not available")
+			return
+		} else if res.StatusCode != http.StatusOK {
+			err = fmt.Errorf("Unable to retrieve from station: %s", res.Status)
+			log.Printf("[API] Cannot query station %s: %v", name, err)
+			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Station not available")
+			return
+		}
+
+		log.Printf("[API] Generating station values from %s", name)
+		out := struct {
+			Station string           `json:"station"`
+			Count   int              `json:"count"`
+			Items   *[]monitorResult `json:"items"`
+		}{}
+		if err = json.NewDecoder(res.Body).Decode(&out); err != nil {
+			log.Printf("[API] Cannot decode JSON from station %s: %v", name, err)
+			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Station not available")
+			return
+		}
+		out.Station = name
+		api.writeDataJSON(resp, http.StatusOK, out)
+	}
+}
+
+func (api *webAPI) processStationSourceCommand(resp http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	name := vars["station"]
+	if name == "local" {
+		log.Printf("[API] Processing local station command")
+		api.processSourceCommand(resp, req)
+	} else {
+		station := api.config.FindStation(name)
+		if station == nil {
+			log.Printf("[API] Cannot find station %s", name)
+			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Unknown station")
+			return
+		}
+
+		sourceName := vars["source"]
+		res, err := http.Post(
+			"http://"+station.Address+"/api/sources/"+sourceName+"/effectors",
+			"application/json",
+			req.Body)
+		if err != nil {
+			log.Printf("[API] Cannot post command to station %s: %v", name, err)
+			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Station not available")
+			return
+		} else if res.StatusCode != http.StatusOK {
+			err = fmt.Errorf("Unable to post command to station: %s", res.Status)
+			log.Printf("[API] Cannot query station %s: %v", name, err)
+			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Station not available")
+			return
+		}
+
+		log.Printf("[API] Retrieving command result from %s", name)
+		out := struct {
+			Station string `json:"station"`
+			Status  string `json:"status"`
+			Message string `json:"msg"`
+		}{}
+		if err = json.NewDecoder(res.Body).Decode(&out); err != nil {
+			log.Printf("[API] Cannot decode JSON from station %s: %v", name, err)
+			api.writeStatusJSON(resp, http.StatusNotFound, "Error", "Station not available")
+			return
+		}
+		out.Station = name
 		api.writeDataJSON(resp, http.StatusOK, out)
 	}
 }
