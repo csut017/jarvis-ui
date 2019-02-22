@@ -6,7 +6,7 @@ import { environment } from 'src/environments/environment';
 import { List } from './common';
 import { Logger, LoggingService } from './logging.service';
 import { Source } from './source.service';
-import { Result, Results } from './Result';
+import { Result, Results, Status } from './Result';
 import { ValueList } from './data';
 
 @Injectable({
@@ -53,7 +53,25 @@ export class StationService {
       .pipe(
         tap(res => this.logger.log('Retrieved source values from station', res)),
         map(res => Result.new(res)),
-        catchError(this.logger.handleError(`getValues('${station}', '${source})`, Result.new<ValueList>(null, 'Unable to load source values from station')))
+        catchError(this.logger.handleError(`getValues('${station}', '${source}')`, Result.new<ValueList>(null, 'Unable to load source values from station')))
+      );
+  }
+
+  sendEffectorCommand(station: string, source: string, name: string, action: string, duration: number): Observable<Result<Status>> {
+    const data = {
+      name: name,
+      action: action,
+      duration: duration
+    };
+    const uriStation = encodeURIComponent(station),
+      uriSource = encodeURIComponent(source),
+    url = `${environment.apiURL}stations/${uriStation}/sources/${uriSource}/effectors`;
+    this.logger.log(`Sending command to effector ${name} in source ${source} in station ${name}`, url);
+    return this.http.post<Status>(url, data)
+      .pipe(
+        tap(res => this.logger.log('Retrieved command result', res)),
+        map(res => Result.new(res)),
+        catchError(this.logger.handleError(`sendEffectorCommand('${station}', '${source}', '${name}', '${action}', ${duration})`, Result.new<Status>(null, 'Unable to send command to source in station')))
       );
   }
 }

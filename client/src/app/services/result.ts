@@ -25,3 +25,8 @@ export class Results<T> {
         return out;
     }
 }
+
+export interface Status {
+    status: string;
+    msg: string;
+}

@@ -122,11 +122,17 @@ export class StationsComponent implements OnInit {
   }
 
   turnEffectorOn(eff: effector): void {
-
+    this.stationService.sendEffectorCommand(this.name, this.sourceName, eff.name, 'on', eff.duration)
+      .subscribe(res => {
+        
+      });
   }
 
   turnEffectorOff(eff: effector): void {
-    
+    this.stationService.sendEffectorCommand(this.name, this.sourceName, eff.name, 'off', 0)
+      .subscribe(res => {
+        
+      });
   }
 
   storeChartInstance(chartInstance: any): void {
